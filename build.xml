@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project default="deploy">
+
+	<!-- Compile shared classes -->
+	<target name="compile">
+		<property name="v.major" value="1" />
+		<property name="v.minor" value="0" />
+		
+		<!-- Clean out old libraries -->
+		<delete>
+			<fileset dir="${java.io.tmpdir}/build">
+				<exclude name="golgotha_ipc-${v.major}.${v.minor}.jar" />
+				<include name="golgotha_ipc-*.jar " />
+			</fileset>
+		</delete>
+	
+		<mkdir dir="${java.io.tmpdir}/build/ipc" />
+		<javac srcdir="src/java" optimize="on" destdir="${java.io.tmpdir}/build/ipc"
+		 debug="true" debuglevel="lines,vars,source" source="1.5" target="1.5" compiler="modern">
+			<compilerarg value="-Xlint:unchecked" />
+	    	<classpath>
+				<pathelement path="${classpath}" />
+	    	</classpath>
+		</javac>
+		
+		<!-- Compress the Java classes into a single JAR file -->
+		<jar basedir="${java.io.tmpdir}/build/ipc" compress="true" index="true"
+			 destfile="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar" />
+	</target>
+
+	<!-- Distribute to webapp projects -->
+	<target name="deploy" depends="compile">
+		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
+		 todir="../DVA2006/lib/deploy" />
+		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
+		 todir="../AFV2006/lib/deploy" />	
+		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
+		 todir="../DVA ACARS/lib/deploy" />
+	</target>
+</project>
