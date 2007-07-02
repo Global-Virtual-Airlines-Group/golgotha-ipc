@@ -9,7 +9,26 @@ package org.gvagroup.common;
  */
 
 public enum SystemEvent {
+	
+	AIRPORT_RELOAD(1),
+	AIRLINE_RELOAD(2),
+	USER_SUSPEND(3);
+	
+	private int _code;
 
-	AIRPORT_RELOAD,
-	AIRLINE_RELOAD
+	/**
+	 * Creates a System Event.
+	 * @param code the event code
+	 */
+	SystemEvent(int code) {
+		_code = code;
+	}
+
+	/**
+	 * Returns the event code.
+	 * @return the code
+	 */
+	public int code() {
+		return _code;
+	}
 }

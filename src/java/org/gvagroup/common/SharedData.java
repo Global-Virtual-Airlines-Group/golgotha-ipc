@@ -15,17 +15,35 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SharedData {
 	
 	public static final String ACARS_POOL = "$acarsPool$data";
-	
 	public static final String ACARS_DAEMON = "$acarsDaemon$data";
+	public static final String JDBC_POOL="$jdbc$pool";
 	
 	private static final Logger log = Logger.getLogger(SharedData.class.getName());
-	
+
+	private static final Collection<String> _appNames = Collections.synchronizedSet(new LinkedHashSet<String>());
 	private static final Map<String, Object> _data = new ConcurrentHashMap<String, Object>();
 	private static final Map<String, ClassLoader> _loaders = new ConcurrentHashMap<String, ClassLoader>();
 
 	// singleton
 	private SharedData() {
 		super();
+	}
+	
+	/**
+	 * Marks an application as running.
+	 * @param appCode the application code
+	 * @see SharedData#purge(String)
+	 */
+	public static void addApp(String appCode) {
+		_appNames.add(appCode);
+	}
+
+	/**
+	 * Returns the running application codes.
+	 * @return the application codes
+	 */
+	public static Collection<String> getApplications() {
+		return new LinkedHashSet<String>(_appNames);
 	}
 	
 	/**
@@ -54,8 +72,9 @@ public class SharedData {
 	
 	/**
 	 * Purges classloader entries from the current classloader, when a web application is reloaded.
+	 * @param appCode the application code
 	 */
-	public static void purge() {
+	public static void purge(String appCode) {
 		int objCount = 0;
 		ClassLoader myLoader = Thread.currentThread().getContextClassLoader();
 		for (Iterator<ClassLoader> i = _loaders.values().iterator(); i.hasNext(); ) {
@@ -66,6 +85,7 @@ public class SharedData {
 			}
 		}
 		
+		_appNames.remove(appCode);
 		log.info("Removed " + objCount + " shared objects");
 	}
 	

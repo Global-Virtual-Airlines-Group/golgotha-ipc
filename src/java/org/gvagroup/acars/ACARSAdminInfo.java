@@ -3,6 +3,8 @@ package org.gvagroup.acars;
 
 import java.util.Collection;
 
+import org.gvagroup.ipc.IPCInfo;
+
 /**
  * An interface to allow ACARS implementations to return Connection Pool diagnostics and map entries.
  * @author Luke
@@ -10,20 +12,20 @@ import java.util.Collection;
  * @since 1.0
  */
 
-public interface ACARSAdminInfo {
+public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 
 	/**
 	 * Returns all current Connection data.
 	 * @param showHidden TRUE if stealth connections should be displayed, otherwise FALSE
 	 * @return a Collection of ACARSConnection beans
 	 */
-	public Collection getPoolInfo(boolean showHidden);
+	public Collection<byte[]> getPoolInfo(boolean showHidden);
 
 	/**
 	 * Returns the positions of all ACARS flights.
 	 * @return a Collection of RouteEntry beans
 	 */
-	public Collection getMapEntries();
+	public Collection<RouteEntry> getMapEntries();
 	
 	/**
 	 * Returns the positions of all ACARS flights in a serialized fashion, suitable for transfer between virtual
@@ -31,7 +33,7 @@ public interface ACARSAdminInfo {
 	 * for deserialization.
 	 * @return a Collection of byte arrays
 	 */
-	public Collection<byte[]> getSerializedMap();
+	public Collection<byte[]> getSerializedInfo();
 
 	/**
 	 * Returns the curent ACARS Flight IDs.

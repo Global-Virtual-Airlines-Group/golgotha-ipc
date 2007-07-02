@@ -7,6 +7,7 @@
 		<property name="v.minor" value="0" />
 		
 		<!-- Clean out old libraries -->
+		<mkdir dir="${java.io.tmpdir}/build" />
 		<delete>
 			<fileset dir="${java.io.tmpdir}/build">
 				<exclude name="golgotha_ipc-${v.major}.${v.minor}.jar" />
@@ -17,7 +18,7 @@
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
 		<javac srcdir="src/java" optimize="on" destdir="${java.io.tmpdir}/build/ipc"
 		 debug="true" debuglevel="lines,vars,source" source="1.5" target="1.5" compiler="modern">
-			<compilerarg value="-Xlint:unchecked" />
+			<compilerarg value="-Xlint:unchecked,deprecation,path,finally" />
 	    	<classpath>
 				<pathelement path="${classpath}" />
 	    	</classpath>
