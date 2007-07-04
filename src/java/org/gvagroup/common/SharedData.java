@@ -16,6 +16,8 @@ public class SharedData {
 	
 	public static final String ACARS_POOL = "$acarsPool$data";
 	public static final String ACARS_DAEMON = "$acarsDaemon$data";
+	public static final String ACARS_CLIENT_BUILDS = "$acarsClient$data";
+	
 	public static final String JDBC_POOL="$jdbc$pool";
 	
 	private static final Logger log = Logger.getLogger(SharedData.class.getName());
