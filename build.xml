@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project default="deploy">
-
 	<!-- Compile shared classes -->
 	<target name="compile">
 		<property name="v.major" value="1" />
-		<property name="v.minor" value="0" />
-		
+		<property name="v.minor" value="1" />
+
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
 		<delete>
@@ -14,7 +13,7 @@
 				<include name="golgotha_ipc-*.jar " />
 			</fileset>
 		</delete>
-	
+
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
 		<javac srcdir="src/java" optimize="on" destdir="${java.io.tmpdir}/build/ipc"
 		 debug="true" debuglevel="lines,vars,source" source="1.6" target="1.6" compiler="modern">
@@ -23,7 +22,7 @@
 				<pathelement path="${classpath}" />
 	    	</classpath>
 		</javac>
-		
+
 		<!-- Compress the Java classes into a single JAR file -->
 		<jar basedir="${java.io.tmpdir}/build/ipc" compress="true" index="true"
 			 destfile="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar" />

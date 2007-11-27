@@ -8,7 +8,7 @@ import org.gvagroup.ipc.IPCInfo;
 /**
  * An interface to allow ACARS implementations to return Connection Pool diagnostics and map entries.
  * @author Luke
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 
@@ -52,4 +52,10 @@ public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 	 * @return TRUE if there is at least one connection, otherwise FALSE
 	 */
 	public boolean isEmpty();
+	
+	/**
+	 * Returns if there are any dispatch Connections.
+	 * @return TRUE if there is at least one dispatch connection, otherwise FALSE
+	 */
+	public boolean isDispatchOnline();
 }
