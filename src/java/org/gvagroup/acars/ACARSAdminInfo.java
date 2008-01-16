@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.acars;
 
 import java.util.Collection;
@@ -8,7 +8,7 @@ import org.gvagroup.ipc.IPCInfo;
 /**
  * An interface to allow ACARS implementations to return Connection Pool diagnostics and map entries.
  * @author Luke
- * @version 1.1
+ * @version 2.1
  * @since 1.0
  */
 
@@ -46,6 +46,12 @@ public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 	 * @return a Collection of ban objects
 	 */
 	public Collection getBanInfo();
+	
+	/**
+	 * Returns connection statisitcs.
+	 * @return a Collection of ConnectionStats beans
+	 */
+	public Collection getStatistics();
 
 	/**
 	 * Returns if there are any ACARS connections.
