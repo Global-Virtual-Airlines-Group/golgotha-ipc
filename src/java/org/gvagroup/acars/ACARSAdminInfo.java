@@ -54,10 +54,10 @@ public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 	public Collection getStatistics();
 
 	/**
-	 * Returns if there are any ACARS connections.
-	 * @return TRUE if there is at least one connection, otherwise FALSE
+	 * Returns the number of active ACARS Connections.
+	 * @return the number of connections
 	 */
-	public boolean isEmpty();
+	public int size();
 	
 	/**
 	 * Returns if there are any dispatch Connections.
