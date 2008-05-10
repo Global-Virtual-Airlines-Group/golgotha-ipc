@@ -1,26 +1,42 @@
-// Copyright 2007 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2008 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 /**
- * An enumeration of valid cross-application events.
+ * A class to hold cross-application event data.
  * @author Luke
- * @version 1.0
+ * @version 1.2
  * @since 1.0
  */
 
-public enum SystemEvent {
+public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent> {
 	
-	AIRPORT_RELOAD(1),
-	AIRLINE_RELOAD(2),
-	USER_SUSPEND(3);
+	public static final int AIRPORT_RELOAD = 1;
+	public static final int AIRLINE_RELOAD = 2;
 	
 	private int _code;
 
 	/**
+	 * Creates an event to reload all Airports.
+	 * @return a SystemEvent
+	 */
+	public static final SystemEvent AirportReload() {
+		return new SystemEvent(AIRPORT_RELOAD);
+	}
+	
+	/**
+	 * Creates an event to reload all Airlines.
+	 * @return a SystemEvent
+	 */
+	public static final SystemEvent AirlineReload() {
+		return new SystemEvent(AIRLINE_RELOAD);
+	}
+	
+	/**
 	 * Creates a System Event.
 	 * @param code the event code
 	 */
-	SystemEvent(int code) {
+	protected SystemEvent(int code) {
+		super();
 		_code = code;
 	}
 
@@ -28,7 +44,18 @@ public enum SystemEvent {
 	 * Returns the event code.
 	 * @return the code
 	 */
-	public int code() {
+	public int getCode() {
+		return _code;
+	}
+	
+	/**
+	 * Compares two events by comparing their codes.
+	 */
+	public int compareTo(SystemEvent ev2) {
+		return Integer.valueOf(_code).compareTo(Integer.valueOf(ev2._code));
+	}
+	
+	public int hashCode() {
 		return _code;
 	}
 }
