@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * A bean to store ACARS client build information.
  * @author Luke
- * @version 2.1
+ * @version 2.2
  * @since 1.1
  */
 
@@ -15,6 +15,8 @@ public class ACARSClientInfo {
 	private int _latest;
 	private final Map<String, Integer> _minBuilds = new TreeMap<String, Integer>();
 	private final Map<Integer, Integer> _betaBuilds = new TreeMap<Integer, Integer>();
+	
+	private int _minDispatchBuild;
 	
 	/**
 	 * Returns the latest ACARS client build.
@@ -53,6 +55,15 @@ public class ACARSClientInfo {
 	}
 	
 	/**
+	 * Returns the minimum supported build for the Dispatcher client.
+	 * @return the build number
+	 * @see ACARSClientInfo#setMinimumDispatchBuild(int)
+	 */
+	public int getMinimumDispatchBuild() {
+		return _minDispatchBuild;
+	}
+	
+	/**
 	 * Returns the minimum supported beta release for a build.
 	 * @param build the build number
 	 * @return the minimum beta release
@@ -82,6 +93,15 @@ public class ACARSClientInfo {
 	}
 	
 	/**
+	 * Sets the minimum supported build for the Dispatcher client.
+	 * @param build the build number
+	 * @see ACARSClientInfo#getMinimumDispatchBuild()
+	 */
+	public void setMinimumDispatchBuild(int build) {
+		_minDispatchBuild = Math.max(1, build);
+	}
+	
+	/**
 	 * Sets the minimum supported beta release for a build.
 	 * @param build the build number
 	 * @param beta the beta number
@@ -94,6 +114,8 @@ public class ACARSClientInfo {
 	public String toString() {
 		StringBuilder buf = new StringBuilder("latest=");
 		buf.append(_latest);
+		buf.append(", dispatch=");
+		buf.append(_minDispatchBuild);
 		buf.append(", min=");
 		buf.append(_minBuilds.toString());
 		buf.append(", beta=");

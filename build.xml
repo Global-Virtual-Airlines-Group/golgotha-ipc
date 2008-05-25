@@ -3,7 +3,7 @@
 	<!-- Compile shared classes -->
 	<target name="compile">
 		<property name="v.major" value="1" />
-		<property name="v.minor" value="2" />
+		<property name="v.minor" value="21" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
@@ -32,8 +32,6 @@
 	<target name="deploy" depends="compile">
 		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
 		 todir="../DVA2006/lib/deploy" />
-		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
-		 todir="../AFV2006/lib/deploy" />	
 		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
 		 todir="../DVA ACARS/lib/deploy" />
 	</target>
