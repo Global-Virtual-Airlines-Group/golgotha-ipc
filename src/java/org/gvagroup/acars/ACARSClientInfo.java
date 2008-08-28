@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * A bean to store ACARS client build information.
  * @author Luke
- * @version 2.2
+ * @version 1.22
  * @since 1.1
  */
 
@@ -15,6 +15,7 @@ public class ACARSClientInfo {
 	private int _latest;
 	private final Map<String, Integer> _minBuilds = new TreeMap<String, Integer>();
 	private final Map<Integer, Integer> _betaBuilds = new TreeMap<Integer, Integer>();
+	private final Collection<Integer> _noDispatchBuilds = new TreeSet<Integer>();
 	
 	private int _minDispatchBuild;
 	
@@ -74,6 +75,15 @@ public class ACARSClientInfo {
 	}
 	
 	/**
+	 * Returns the ACARS client builds that cannot request Dispatch service.
+	 * @return a Collection of build numbers
+	 * @see ACARSClientInfo#addNoDispatchBuild(int)
+	 */
+	public Collection<Integer> getNoDispatchBuilds() {
+		return _noDispatchBuilds;
+	}
+	
+	/**
 	 * Sets the latest ACARS client build number.
 	 * @param build the build number
 	 * @see ACARSClientInfo#getLatest()
@@ -102,6 +112,27 @@ public class ACARSClientInfo {
 	}
 	
 	/**
+	 * Adds an ACARS client build that cannot request Dispatch services.
+	 * @param build the build number
+	 * @see ACARSClientInfo#setNoDispatchBuilds(Collection)
+	 * @see ACARSClientInfo#getNoDispatchBuilds()
+	 */
+	public void addNoDispatchBuild(int build) {
+		_noDispatchBuilds.add(Integer.valueOf(build));
+	}
+	
+	/**
+	 * Adds an ACARS client build that cannot request Dispatch services.
+	 * @param builds a Collection of build numbers
+	 * @see ACARSClientInfo#addNoDispatchBuild(int)
+	 * @see ACARSClientInfo#getNoDispatchBuilds()
+	 */
+	public void setNoDispatchBuilds(Collection<Integer> builds) {
+		_noDispatchBuilds.clear();
+		_noDispatchBuilds.addAll(builds);
+	}
+	
+	/**
 	 * Sets the minimum supported beta release for a build.
 	 * @param build the build number
 	 * @param beta the beta number
@@ -118,6 +149,8 @@ public class ACARSClientInfo {
 		buf.append(_minDispatchBuild);
 		buf.append(", min=");
 		buf.append(_minBuilds.toString());
+		buf.append(", noDispatch=");
+		buf.append(_noDispatchBuilds.toString());
 		buf.append(", beta=");
 		buf.append(_betaBuilds.toString());
 		return buf.toString();
