@@ -1,10 +1,10 @@
-// Copyright 2004, 2005, 2006 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2008 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.acars;
 
 /**
  * An interface to store ACARS Flags constants.
  * @author Luke
- * @version 1.0
+ * @version 2.2
  * @since 1.0
  */
 
@@ -29,9 +29,11 @@ public interface ACARSFlags {
 	public static final int FLAG_AP_HDG = 0x0400;
 	public static final int FLAG_AP_APR = 0x0800;
 	public static final int FLAG_AP_ALT = 0x1000;
-	public static final int FLAG_AP_ANY = 0x1F00;
+	public static final int FLAG_AP_LNAV = 0x100000;
+	public static final int FLAG_AP_ANY = 0x101F00;
 	
 	public static final int FLAG_AT_IAS = 0x2000;
 	public static final int FLAG_AT_MACH = 0x4000;
+	public static final int FLAG_AT_VNAV = 0x80000;
 	public static final int FLAG_AT_ANY = 0x6000;
 }
