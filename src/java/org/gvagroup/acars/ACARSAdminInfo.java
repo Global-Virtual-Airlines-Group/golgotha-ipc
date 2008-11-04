@@ -8,7 +8,7 @@ import org.gvagroup.ipc.IPCInfo;
 /**
  * An interface to allow ACARS implementations to return Connection Pool diagnostics and map entries.
  * @author Luke
- * @version 2.1
+ * @version 2.3
  * @since 1.0
  */
 
@@ -41,12 +41,6 @@ public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 	 */
 	public Collection<Integer> getFlightIDs();
 
-	/**
-	 * Returns all live ACARS connection bans.
-	 * @return a Collection of ban objects
-	 */
-	public Collection getBanInfo();
-	
 	/**
 	 * Returns connection statisitcs.
 	 * @return a Collection of ConnectionStats beans
