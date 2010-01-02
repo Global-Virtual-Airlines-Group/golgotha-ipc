@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * A bean to store ACARS client build information.
  * @author Luke
- * @version 1.22
+ * @version 1.26
  * @since 1.1
  */
 
@@ -18,6 +18,7 @@ public class ACARSClientInfo {
 	private final Collection<Integer> _noDispatchBuilds = new TreeSet<Integer>();
 	
 	private int _minDispatchBuild;
+	private int _minViewerBuild;
 	
 	/**
 	 * Returns the latest ACARS client build.
@@ -62,6 +63,15 @@ public class ACARSClientInfo {
 	 */
 	public int getMinimumDispatchBuild() {
 		return _minDispatchBuild;
+	}
+	
+	/**
+	 * Returns the minimum supported build for the Flight Viewer client.
+	 * @return the build number
+	 * @see ACARSClientInfo#setMinimumViewerBuild(int)
+	 */
+	public int getMinimumViewerBuild() {
+		return _minViewerBuild;
 	}
 	
 	/**
@@ -112,6 +122,15 @@ public class ACARSClientInfo {
 	}
 	
 	/**
+	 * Sets the minimum supported build for the Flight Viewer client.
+	 * @param build the build number
+	 * @see ACARSClientInfo#getMinimumViewerBuild()
+	 */
+	public void setMinimumViewerBuild(int build) {
+		_minViewerBuild = Math.max(1, build);
+	}
+	
+	/**
 	 * Adds an ACARS client build that cannot request Dispatch services.
 	 * @param build the build number
 	 * @see ACARSClientInfo#setNoDispatchBuilds(Collection)
@@ -147,6 +166,8 @@ public class ACARSClientInfo {
 		buf.append(_latest);
 		buf.append(", dispatch=");
 		buf.append(_minDispatchBuild);
+		buf.append(", viewer=");
+		buf.append(_minViewerBuild);
 		buf.append(", min=");
 		buf.append(_minBuilds.toString());
 		buf.append(", noDispatch=");
