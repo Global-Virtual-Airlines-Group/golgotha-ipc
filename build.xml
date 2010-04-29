@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project default="deploy">
+<project default="compile">
 	<!-- Compile shared classes -->
 	<target name="compile">
 		<property name="v.major" value="1" />
-		<property name="v.minor" value="26" />
+		<property name="v.minor" value="40" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
@@ -20,19 +20,14 @@
 			<compilerarg value="-Xlint:unchecked,deprecation,path,finally" />
 	    	<classpath>
 				<pathelement path="${classpath}" />
+		    	<fileset dir="lib">
+					<include name="**/*.jar"/>
+				</fileset>
 	    	</classpath>
 		</javac>
 
 		<!-- Compress the Java classes into a single JAR file -->
 		<jar basedir="${java.io.tmpdir}/build/ipc" compress="true" index="true"
-			 destfile="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar" />
-	</target>
-
-	<!-- Distribute to webapp projects -->
-	<target name="deploy" depends="compile">
-		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
-		 todir="../DVA2006/lib/deploy" />
-		<copy file="${java.io.tmpdir}/build/golgotha_ipc-${v.major}.${v.minor}.jar"
-		 todir="../DVA ACARS/lib/deploy" />
+			 destfile="${basedir}/jar/golgotha_ipc-${v.major}.${v.minor}.jar" />
 	</target>
 </project>
