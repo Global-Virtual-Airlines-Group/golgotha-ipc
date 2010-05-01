@@ -4,8 +4,6 @@ import java.sql.*;
 import java.io.FileInputStream;
 import java.util.Properties;
 
-import org.apache.log4j.*;
-
 import junit.framework.TestCase;
 
 public class TestTransactions extends TestCase {
@@ -15,7 +13,6 @@ public class TestTransactions extends TestCase {
 
 	protected void setUp() throws Exception {
         super.setUp();
-        PropertyConfigurator.configure("etc/log4j.properties");
         _props = new Properties();
         _props.load(new FileInputStream("data/jdbc.properties"));
         _pool = new ConnectionPool(2);
@@ -27,7 +24,6 @@ public class TestTransactions extends TestCase {
 	protected void tearDown() throws Exception {
         _pool.close();
         _props = null;
-		LogManager.shutdown();
 		super.tearDown();
 	}
 	

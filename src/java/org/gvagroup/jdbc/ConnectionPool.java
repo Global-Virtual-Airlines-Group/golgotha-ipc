@@ -3,10 +3,9 @@ package org.gvagroup.jdbc;
 
 import java.sql.*;
 import java.util.*;
+import java.util.logging.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-
-import org.apache.log4j.Logger;
 
 /**
  * A user-configurable JDBC Connection Pool.
@@ -19,7 +18,7 @@ import org.apache.log4j.Logger;
 
 public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExceptionHandler {
 
-	private static transient final Logger log = Logger.getLogger(ConnectionPool.class);
+	private static transient final Logger log = Logger.getLogger(ConnectionPool.class.getName());
 
 	// The maximum amount of time a connection can be reserved before we consider
 	// it to be stale and return it anyways
@@ -207,8 +206,8 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 		ConnectionPoolEntry cpe = _idleCons.poll();
 		if (cpe != null) {
 			Connection c = cpe.reserve(_logStack);
-			if (log.isDebugEnabled())
-				log.debug("Reserving JDBC Connection " + cpe);
+			if (log.isLoggable(Level.FINER))
+				log.finer("Reserving JDBC Connection " + cpe);
 			if (!cpe.isActive())
 				_expandCount.incrementAndGet();
 			
@@ -243,7 +242,7 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 				return cpe.reserve(_logStack);
 			}
 		} catch (InterruptedException ie) {
-			log.warn("Interrupted waiting for Connection");
+			log.warning("Interrupted waiting for Connection");
 		}
 
 		_fullCount.incrementAndGet();
@@ -268,13 +267,13 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 				log.info("Rolling back open transaction");
 			}
 		} catch (SQLException se) {
-			log.warn("Error rolling back transaction - " + se.getMessage());
+			log.warning("Error rolling back transaction - " + se.getMessage());
 			_monitor.execute();
 		}
 
 		// Check that we got a connection wrapper
 		if (!(c instanceof ConnectionWrapper)) {
-			log.warn("Invalid JDBC Connection returned");
+			log.warning("Invalid JDBC Connection returned");
 			return 0;
 		}
 
@@ -282,7 +281,7 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 		ConnectionWrapper cw = (ConnectionWrapper) c;
 		ConnectionPoolEntry cpe = _cons.get(cw.getID());
 		if (cpe == null) {
-			log.warn("Invalid JDBC Connection returned - " + cw.getID());
+			log.warning("Invalid JDBC Connection returned - " + cw.getID());
 			return 0;
 		}
 
@@ -292,20 +291,21 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 
 		// If this is a stale dynamic connection, such it down
 		if (cpe.isDynamic() && (cpe.getUseCount() > MAX_USE_TIME)) {
-			log.error("Closed stale dynamic JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms", cpe.getStackInfo());
+			log.logp(Level.SEVERE, ConnectionPool.class.getName(), "release", "Closed stale dynamic JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms", 
+					cpe.getStackInfo());
 			cpe.close();
 		} else if (!cpe.isDynamic()) {
-			if (log.isDebugEnabled())
-				log.debug("Released JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms");
+			if (log.isLoggable(Level.FINER))
+				log.finer("Released JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms");
 
 			// Check if we need to restart
 			if ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests)) {
-				log.warn("Restarting JDBC Connection " + cpe + " after " + cpe.getUseCount() + " reservations");
+				log.warning("Restarting JDBC Connection " + cpe + " after " + cpe.getUseCount() + " reservations");
 				cpe.close();
 				try {
 					cpe.connect();
 				} catch (SQLException se) {
-					log.error("Cannot reconnect JDBC Connection " + cpe, se);
+					log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Cannot reconnect Connection " + cpe, se);
 				}
 			}
 		}
@@ -357,7 +357,7 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 		for (Iterator<ConnectionPoolEntry> i = _cons.values().iterator(); i.hasNext();) {
 			ConnectionPoolEntry cpe = i.next();
 			if (cpe.inUse())
-				log.warn("Forcibly closing JDBC Connection " + cpe);
+				log.warning("Forcibly closing JDBC Connection " + cpe);
 
 			cpe.close();
 			i.remove();

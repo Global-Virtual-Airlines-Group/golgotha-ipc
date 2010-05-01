@@ -3,8 +3,7 @@ package org.gvagroup.jdbc;
 
 import java.sql.*;
 import java.util.*;
-
-import org.apache.log4j.Logger;
+import java.util.logging.*;
 
 /**
  * A class to store JDBC connections in a connection pool and track usage.
@@ -15,7 +14,7 @@ import org.apache.log4j.Logger;
 
 class ConnectionPoolEntry implements java.io.Serializable, Comparable<ConnectionPoolEntry> {
 
-	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class);
+	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class.getName());
 	
 	private static final String PACKAGE = ConnectionPoolEntry.class.getPackage().getName();
 
@@ -140,7 +139,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 				_c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 			}
 		} catch (Exception e) {
-			log.error("Error resetting autoCommit/isolation - " + e.getMessage());
+			log.severe("Error resetting autoCommit/isolation - " + e.getMessage());
 		}
 
 		// Add the usage time to the total for this connection
@@ -252,7 +251,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 				if (el.size() > 1)
 					_stackInfo.setStackTrace(el.toArray(new StackTraceElement[0]));
 			} catch (Exception e) {
-				log.warn("Cannot fetch stack trace - " + e.getMessage());
+				log.warning("Cannot fetch stack trace - " + e.getMessage());
 			}
 		}
 

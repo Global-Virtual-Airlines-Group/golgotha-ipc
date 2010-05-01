@@ -8,8 +8,6 @@ import java.util.concurrent.Semaphore;
 
 import junit.framework.TestCase;
 
-import org.apache.log4j.*;
-
 public class TestConnectionPool extends TestCase {
 
     private ConnectionPool _pool;
@@ -17,7 +15,6 @@ public class TestConnectionPool extends TestCase {
     
     protected void setUp() throws Exception {
         super.setUp();
-        PropertyConfigurator.configure("etc/log4j.properties");
         _props = new Properties();
         _props.load(new FileInputStream("data/jdbc.properties"));
         _pool = new ConnectionPool(2);
@@ -26,7 +23,6 @@ public class TestConnectionPool extends TestCase {
     protected void tearDown() throws Exception {
         _pool.close();
         _props = null;
-        LogManager.shutdown();
         super.tearDown();
     }
     

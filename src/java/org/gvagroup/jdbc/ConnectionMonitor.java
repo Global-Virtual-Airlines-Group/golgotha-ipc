@@ -3,8 +3,7 @@ package org.gvagroup.jdbc;
 
 import java.util.*;
 import java.sql.*;
-
-import org.apache.log4j.Logger;
+import java.util.logging.*;
 
 /**
  * A daemon to monitor JDBC connections.
@@ -15,7 +14,7 @@ import org.apache.log4j.Logger;
 
 class ConnectionMonitor implements java.io.Serializable, Runnable {
 
-	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class);
+	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class.getName());
 	private static final Collection<String> _sqlStatus = Arrays.asList("08003", "08S01");
 
 	private transient ConnectionPool _pool;
@@ -73,8 +72,8 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	protected synchronized void checkPool() {
 		_poolCheckCount++;
 		_lastPoolCheck = System.currentTimeMillis();
-		if (log.isDebugEnabled())
-			log.debug("Checking Connection Pool");
+		if (log.isLoggable(Level.FINER))
+			log.finer("Checking Connection Pool");
 
 		// Loop through the entries
 		for (Iterator<ConnectionPoolEntry> i = _pool.getEntries().iterator(); i.hasNext();) {
@@ -84,16 +83,16 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 			// Check if the entry has timed out
 			if (!cpe.isActive()) {
 				if (cpe.inUse()) {
-					log.warn("Inactive connection " + cpe + " in use!");
+					log.warning("Inactive connection " + cpe + " in use!");
 					cpe.free();
-				} else if (log.isDebugEnabled())
-					log.debug("Skipping inactive connection " + cpe);
+				} else if (log.isLoggable(Level.FINER))
+					log.finer("Skipping inactive connection " + cpe);
 			} else if (cpe.inUse() && isStale) {
-				log.error("Releasing stale Connection " + cpe, cpe.getStackInfo());
+				log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Releasing stale Connection " + cpe, cpe.getStackInfo());
 				_pool.release(cpe.getWrapper());
 			} else if (cpe.isDynamic() && !cpe.inUse()) {
 				if (isStale)
-					log.warn("Releasing dynamic Connection " + cpe, cpe.getStackInfo());
+					log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Releasing stale dynamic Connection " + cpe, cpe.getStackInfo());
 				else
 					log.info("Releasing dynamic Connection " + cpe);
 				
@@ -101,18 +100,18 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 			} else if (cpe.inUse())
 				log.info("Connection " + cpe + " in use");
 			else if (!cpe.inUse() && !cpe.checkConnection()) {
-				log.warn("Reconnecting Connection " + cpe);
+				log.warning("Reconnecting Connection " + cpe);
 				cpe.close();
 
 				try {
 					cpe.connect();
 				} catch (SQLException se) {
 					if (_sqlStatus.contains(se.getSQLState()))
-						log.warn("Transient SQL Error - " + se.getSQLState());
+						log.warning("Transient SQL Error - " + se.getSQLState());
 					else
-						log.warn("Unknown SQL Error code - " + se.getSQLState());
+						log.warning("Unknown SQL Error code - " + se.getSQLState());
 				} catch (Exception e) {
-					log.error("Error reconnecting " + cpe, e);
+					log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Error reconnecting " + cpe, e);
 				}
 			}
 		}
