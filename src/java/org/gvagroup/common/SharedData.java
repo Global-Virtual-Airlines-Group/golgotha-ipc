@@ -1,4 +1,4 @@
-// Copyright 2007 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2010 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 import java.util.*;
@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 1.0
+ * @version 1.4
  * @since 1.0
  */
 
@@ -20,6 +20,9 @@ public class SharedData {
 	
 	public static final String JDBC_POOL="$jdbc$pool";
 	
+	public static final String MVS_POOL = "$mvsPool$data";
+	public static final String MVS_DAEMON = "$mvsDaemon$data";
+
 	private static final Logger log = Logger.getLogger(SharedData.class.getName());
 
 	private static final Collection<String> _appNames = Collections.synchronizedSet(new LinkedHashSet<String>());
