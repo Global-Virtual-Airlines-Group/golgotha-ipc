@@ -8,12 +8,14 @@ import java.util.logging.*;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 1.4
+ * @version 1.41
  * @since 1.0
  */
 
 class ConnectionMonitor implements java.io.Serializable, Runnable {
 
+	private static final long serialVersionUID = 730339303146022570L;
+	
 	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class.getName());
 	private static final Collection<String> _sqlStatus = Arrays.asList("08003", "08S01");
 

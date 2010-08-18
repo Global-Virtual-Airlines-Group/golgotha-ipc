@@ -8,11 +8,13 @@ import java.util.logging.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 1.4
+ * @version 1.41
  * @since 1.0
  */
 
 class ConnectionPoolEntry implements java.io.Serializable, Comparable<ConnectionPoolEntry> {
+
+	private static final long serialVersionUID = 2682609809576974530L;
 
 	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class.getName());
 	
@@ -20,7 +22,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 
 	private transient ConnectionWrapper _c;
 	private StackTrace _stackInfo;
-	private int _id;
+	private Integer _id;
 
 	private transient final Properties _props = new Properties();
 	private transient String _validationQuery = "SELECT 1";
@@ -45,7 +47,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	ConnectionPoolEntry(int id, Properties props) {
 		super();
-		_id = id;
+		_id = Integer.valueOf(id);
 		if (props.containsKey("validationQuery")) {
 			_validationQuery = props.getProperty("validationQuery");
 			props.remove("validationQuery");
@@ -189,7 +191,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * @return the entry id
 	 */
 	public int getID() {
-		return _id;
+		return _id.intValue();
 	}
 
 	/**
@@ -325,11 +327,11 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * Compares two entries by comparing their ID.
 	 */
 	public int compareTo(ConnectionPoolEntry e2) {
-		return Integer.valueOf(_id).compareTo(Integer.valueOf(e2._id));
+		return _id.compareTo(e2._id);
 	}
 
 	public int hashCode() {
-		return toString().hashCode();
+		return _id.hashCode();
 	}
 
 	/**
@@ -338,7 +340,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	public final String toString() {
 		StringBuilder buf = new StringBuilder("#");
-		buf.append(String.valueOf(_id));
+		buf.append(_id.toString());
 		return buf.toString();
 	}
 }

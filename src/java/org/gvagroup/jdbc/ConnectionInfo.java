@@ -6,13 +6,15 @@ import java.util.Date;
 /**
  * A bean to store information about a JDBC connection pool entry.
  * @author Luke
- * @version 1.4
+ * @version 1.41
  * @since 1.0
  */
 
 public class ConnectionInfo implements java.io.Serializable, Comparable<ConnectionInfo> {
    
-   private int _id;
+	private static final long serialVersionUID = -6631743019256780021L;
+	
+	private int _id;
    private boolean _isDynamic;
    private boolean _isConnected;
    private boolean _inUse;
