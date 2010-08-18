@@ -1,14 +1,16 @@
-// Copyright 2007, 2008 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2008, 2010 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 /**
  * A class to hold cross-application event data.
  * @author Luke
- * @version 1.2
+ * @version 1.41
  * @since 1.0
  */
 
 public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent> {
+	
+	private static final long serialVersionUID = -6449972707076384490L;
 	
 	public static final int AIRPORT_RELOAD = 1;
 	public static final int AIRLINE_RELOAD = 2;

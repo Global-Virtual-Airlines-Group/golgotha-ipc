@@ -4,12 +4,14 @@ package org.gvagroup.common;
 /**
  * A cross-application event to track events linked to a specific User.
  * @author Luke
- * @version 1.2
+ * @version 1.41
  * @snce 1.2
  */
 
 public class UserEvent extends SystemEvent {
 
+	private static final long serialVersionUID = -4485607718271551135L;
+	
 	public static final int USER_SUSPEND = 3;
 	public static final int USER_INVALIDATE = 4;
 	
