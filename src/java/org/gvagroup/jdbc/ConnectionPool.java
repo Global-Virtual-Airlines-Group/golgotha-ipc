@@ -10,13 +10,15 @@ import java.util.concurrent.atomic.*;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 3.0
+ * @version 1.41
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
  */
 
 public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExceptionHandler {
+
+	private static final long serialVersionUID = 5092908907485396942L;
 
 	private static transient final Logger log = Logger.getLogger(ConnectionPool.class.getName());
 
@@ -34,13 +36,16 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 
 	private ConnectionMonitor _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry> _cons = new TreeMap<Integer, ConnectionPoolEntry>();
-	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>();
+	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>(16);
 	private transient Thread _monitorThread;
 
 	private transient final Properties _props = new Properties();
 	private boolean _autoCommit = true;
 
 	public static class ConnectionPoolFullException extends ConnectionPoolException {
+
+		private static final long serialVersionUID = -1618858703712722475L;
+
 		ConnectionPoolFullException() {
 			super("Connection Pool Full");
 		}
@@ -159,8 +164,7 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	 * Sets multiple JDBC connection properties at once.
 	 * @param props the properties to set
 	 */
-	@SuppressWarnings("unchecked")
-	public void setProperties(Map props) {
+	public void setProperties(Map<?, ?> props) {
 		_props.putAll(props);
 	}
 
@@ -176,7 +180,7 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 				return;
 		}
 
-		throw new ClassNotFoundException(c.getName() + " does not implement java.sql.Driver");
+		throw new ClassCastException(c.getName() + " does not implement java.sql.Driver");
 	}
 
 	/**
@@ -236,7 +240,7 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 
 		// Wait for a new connection to become available
 		try {
-			cpe = _idleCons.poll(1000, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(1250, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				_waitCount.incrementAndGet();		
 				return cpe.reserve(_logStack);
@@ -310,9 +314,8 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 			}
 		}
 
-		// If we're still open, notify a waiting thread
-		if (cpe.isConnected())
-			_idleCons.add(cpe);
+		// Return connection back to the pool
+		_idleCons.add(cpe);
 
 		// Return usage time
 		return useTime;
