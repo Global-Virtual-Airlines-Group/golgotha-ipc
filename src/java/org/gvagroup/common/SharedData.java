@@ -19,6 +19,7 @@ public class SharedData {
 	public static final String ACARS_CLIENT_BUILDS = "$acarsClient$data";
 	
 	public static final String JDBC_POOL="$jdbc$pool";
+	public static final String FB_CREDS = "$fb$creds"; 
 	
 	public static final String MVS_POOL = "$mvsPool$data";
 	public static final String MVS_DAEMON = "$mvsDaemon$data";
@@ -79,7 +80,7 @@ public class SharedData {
 	 * Purges classloader entries from the current classloader, when a web application is reloaded.
 	 * @param appCode the application code
 	 */
-	public static void purge(String appCode) {
+	public static synchronized void purge(String appCode) {
 		int objCount = 0;
 		ClassLoader myLoader = Thread.currentThread().getContextClassLoader();
 		for (Iterator<ClassLoader> i = _loaders.values().iterator(); i.hasNext(); ) {
