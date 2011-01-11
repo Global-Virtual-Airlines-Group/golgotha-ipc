@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
@@ -8,7 +8,7 @@ import java.util.logging.*;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 1.41
+ * @version 1.43
  * @since 1.0
  */
 
@@ -28,11 +28,13 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 
 	/**
 	 * Creates a new Connection Monitor.
+	 * @param the monitor name
 	 * @param interval the sleep time <i>in seconds</i>
 	 * @param pool the ConnectionPool to monitor
 	 */
-	ConnectionMonitor(int interval, ConnectionPool pool) {
+	ConnectionMonitor(String name, int interval, ConnectionPool pool) {
 		super();
+		_name = name;
 		_pool = pool;
 		_sleepTime = Math.min(3600, Math.max(10, interval)) * 1000; // Convert seconds into ms
 	}

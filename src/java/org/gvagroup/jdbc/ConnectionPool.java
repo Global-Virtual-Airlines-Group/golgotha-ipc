@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.*;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.41
+ * @version 1.43
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -54,12 +54,13 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	/**
 	 * Creates a new JDBC connection pool.
 	 * @param maxSize the maximum size of the connection pool
+	 * @param name the Connection pool size
 	 */
-	public ConnectionPool(int maxSize) {
+	public ConnectionPool(int maxSize, String name) {
 		super();
 		DriverManager.setLoginTimeout(5);
 		_poolMaxSize = maxSize;
-		_monitor = new ConnectionMonitor(30, this);
+		_monitor = new ConnectionMonitor(name, 30, this);
 	}
 
 	/**
@@ -266,10 +267,8 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 
 		// Since this connection may have been given to us with pending writes, ROLL THEM BACK
 		try {
-			if (!c.getAutoCommit()) {
-				c.rollback();
-				log.info("Rolling back open transaction");
-			}
+			c.rollback();
+			log.info("Rolling back transactions");
 		} catch (SQLException se) {
 			log.warning("Error rolling back transaction - " + se.getMessage());
 			_monitor.execute();

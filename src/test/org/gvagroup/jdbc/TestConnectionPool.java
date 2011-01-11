@@ -17,7 +17,7 @@ public class TestConnectionPool extends TestCase {
         super.setUp();
         _props = new Properties();
         _props.load(new FileInputStream("data/jdbc.properties"));
-        _pool = new ConnectionPool(2);
+        _pool = new ConnectionPool(2, "test");
     }
 
     protected void tearDown() throws Exception {

@@ -15,7 +15,7 @@ public class TestTransactions extends TestCase {
         super.setUp();
         _props = new Properties();
         _props.load(new FileInputStream("data/jdbc.properties"));
-        _pool = new ConnectionPool(2);
+        _pool = new ConnectionPool(2, "test");
         _pool.setProperties(_props);
         _pool.setCredentials(_props.getProperty("user"), _props.getProperty("password"));
         _pool.setDriver(_props.getProperty("driver"));
