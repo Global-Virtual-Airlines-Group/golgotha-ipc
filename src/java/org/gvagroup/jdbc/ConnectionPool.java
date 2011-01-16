@@ -267,8 +267,10 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 
 		// Since this connection may have been given to us with pending writes, ROLL THEM BACK
 		try {
-			c.rollback();
-			log.info("Rolling back transactions");
+			if (!c.getAutoCommit()) {
+				c.rollback();
+				log.info("Rolling back transactions");
+			}
 		} catch (SQLException se) {
 			log.warning("Error rolling back transaction - " + se.getMessage());
 			_monitor.execute();
