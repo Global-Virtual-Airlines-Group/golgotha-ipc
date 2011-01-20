@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.*;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.43
+ * @version 1.44
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -271,8 +271,8 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 				c.rollback();
 				log.info("Rolling back transactions");
 			}
-		} catch (SQLException se) {
-			log.warning("Error rolling back transaction - " + se.getMessage());
+		} catch (Exception e) {
+			log.warning("Error rolling back transaction - " + e.getMessage());
 			_monitor.execute();
 		}
 
@@ -367,7 +367,15 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 			i.remove();
 		}
 	}
-
+	
+	/**
+	 * Adds a connection entry back to the list of idle connections.
+	 */
+	void addIdle(ConnectionPoolEntry cpe) {
+		if (!_idleCons.contains(cpe))
+			_idleCons.add(cpe);
+	}
+	
 	/**
 	 * Returns information about the connection pool.
 	 * @return a Collection of ConnectionInfo entries

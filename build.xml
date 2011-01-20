@@ -3,7 +3,7 @@
 	<!-- Compile shared classes -->
 	<target name="compile">
 		<property name="v.major" value="1" />
-		<property name="v.minor" value="43" />
+		<property name="v.minor" value="44" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />

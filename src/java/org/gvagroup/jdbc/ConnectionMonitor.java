@@ -8,7 +8,7 @@ import java.util.logging.*;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 1.43
+ * @version 1.44
  * @since 1.0
  */
 
@@ -109,6 +109,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 
 				try {
 					cpe.connect();
+					_pool.addIdle(cpe);
 				} catch (SQLException se) {
 					if (_sqlStatus.contains(se.getSQLState()))
 						log.warning("Transient SQL Error - " + se.getSQLState());
