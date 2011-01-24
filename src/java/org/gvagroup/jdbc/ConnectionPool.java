@@ -435,7 +435,9 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	 * Connection Monitor uncaught exception handler.
 	 */
 	public void uncaughtException(Thread t, Throwable e) {
-		if (t == _monitorThread)
+		if (t == _monitorThread) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			startMonitor();
+		}
 	}
 }
