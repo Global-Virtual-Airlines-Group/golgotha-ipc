@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.*;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.44
+ * @version 1.45
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -370,10 +370,16 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	
 	/**
 	 * Adds a connection entry back to the list of idle connections.
+	 * @return TRUE if the connection was not present, otherwise FALSE
 	 */
-	void addIdle(ConnectionPoolEntry cpe) {
-		if (!_idleCons.contains(cpe))
-			_idleCons.add(cpe);
+	boolean addIdle(ConnectionPoolEntry cpe) {
+		synchronized (_cons) {
+			boolean hasCon = _idleCons.contains(cpe);
+			if (!hasCon)	
+				_idleCons.add(cpe);
+			
+			return hasCon;
+		}
 	}
 	
 	/**
