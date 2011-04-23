@@ -8,7 +8,7 @@ import java.util.logging.*;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 1.45
+ * @version 1.46
  * @since 1.0
  */
 
@@ -119,10 +119,6 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 				} catch (Exception e) {
 					log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Error reconnecting " + cpe, e);
 				}
-			} else {
-				boolean needsAdded = _pool.addIdle(cpe);
-				if (needsAdded)
-					log.info("Returning idle Connection " + cpe + " to queue");
 			}
 		}
 	}
