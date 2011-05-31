@@ -1,5 +1,7 @@
-// Copyright 2007, 2010 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2010, 2011 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
+
+import java.io.Serializable;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -8,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 1.4
+ * @version 1.47
  * @since 1.0
  */
 
@@ -20,6 +22,7 @@ public class SharedData {
 	
 	public static final String JDBC_POOL="$jdbc$pool";
 	public static final String FB_CREDS = "$fb$creds"; 
+	public static final String ECON_DATA = "$econ$master"; 
 	
 	public static final String MVS_POOL = "$mvsPool$data";
 	public static final String MVS_DAEMON = "$mvsDaemon$data";
@@ -27,7 +30,7 @@ public class SharedData {
 	private static final Logger log = Logger.getLogger(SharedData.class.getName());
 
 	private static final Collection<String> _appNames = Collections.synchronizedSet(new LinkedHashSet<String>());
-	private static final Map<String, Object> _data = new ConcurrentHashMap<String, Object>();
+	private static final Map<String, Serializable> _data = new ConcurrentHashMap<String, Serializable>();
 	private static final Map<String, ClassLoader> _loaders = new ConcurrentHashMap<String, ClassLoader>();
 
 	// singleton
@@ -57,7 +60,7 @@ public class SharedData {
 	 * @param key the element ID
 	 * @param value the element
 	 */
-	public static void addData(String key, Object value) {
+	public static void addData(String key, Serializable value) {
 		ClassLoader myLoader = Thread.currentThread().getContextClassLoader();
 		ClassLoader cl = _loaders.get(key);
 		if ((cl != null) && (cl != myLoader))
@@ -72,7 +75,7 @@ public class SharedData {
 	 * @param key the object key
 	 * @return the object, or null if not found
 	 */
-	public static Object get(String key) {
+	public static Serializable get(String key) {
 		return _data.get(key);
 	}
 	

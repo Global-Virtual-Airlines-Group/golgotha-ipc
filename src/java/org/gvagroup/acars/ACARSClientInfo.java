@@ -1,4 +1,4 @@
-// Copyright 2007, 2008 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2008, 2011 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.acars;
 
 import java.util.*;
@@ -6,11 +6,13 @@ import java.util.*;
 /**
  * A bean to store ACARS client build information.
  * @author Luke
- * @version 1.26
+ * @version 1.47
  * @since 1.1
  */
 
-public class ACARSClientInfo {
+public class ACARSClientInfo implements java.io.Serializable {
+	
+	private static final long serialVersionUID = -3501060514206767010L;
 	
 	private int _latest;
 	private final Map<String, Integer> _minBuilds = new TreeMap<String, Integer>();
