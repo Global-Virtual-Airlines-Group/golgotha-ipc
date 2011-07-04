@@ -1,10 +1,10 @@
-// Copyright 2007, 2008, 2010 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2008, 2010, 2011 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 /**
  * A class to hold cross-application event data.
  * @author Luke
- * @version 1.41
+ * @version 1.50
  * @since 1.0
  */
 
@@ -12,32 +12,17 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 	
 	private static final long serialVersionUID = -6449972707076384490L;
 	
-	public static final int AIRPORT_RELOAD = 1;
-	public static final int AIRLINE_RELOAD = 2;
+	public enum Type {
+		AIRPORT_RELOAD, AIRLINE_RELOAD, USER_SUSPEND, USER_INVALIDATE, MVS_RELOAD;
+	}
 	
-	private int _code;
+	private Type _code;
 
-	/**
-	 * Creates an event to reload all Airports.
-	 * @return a SystemEvent
-	 */
-	public static final SystemEvent AirportReload() {
-		return new SystemEvent(AIRPORT_RELOAD);
-	}
-	
-	/**
-	 * Creates an event to reload all Airlines.
-	 * @return a SystemEvent
-	 */
-	public static final SystemEvent AirlineReload() {
-		return new SystemEvent(AIRLINE_RELOAD);
-	}
-	
 	/**
 	 * Creates a System Event.
 	 * @param code the event code
 	 */
-	protected SystemEvent(int code) {
+	public SystemEvent(Type code) {
 		super();
 		_code = code;
 	}
@@ -46,7 +31,7 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 	 * Returns the event code.
 	 * @return the code
 	 */
-	public int getCode() {
+	public Type getCode() {
 		return _code;
 	}
 	
@@ -54,10 +39,10 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 	 * Compares two events by comparing their codes.
 	 */
 	public int compareTo(SystemEvent ev2) {
-		return Integer.valueOf(_code).compareTo(Integer.valueOf(ev2._code));
+		return _code.compareTo(ev2._code);
 	}
 	
 	public int hashCode() {
-		return _code;
+		return _code.hashCode();
 	}
 }
