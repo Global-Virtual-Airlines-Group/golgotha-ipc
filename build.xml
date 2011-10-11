@@ -3,7 +3,7 @@
 	<!-- Compile shared classes -->
 	<target name="compile">
 		<property name="v.major" value="1" />
-		<property name="v.minor" value="50" />
+		<property name="v.minor" value="60" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
@@ -15,8 +15,8 @@
 		</delete>
 
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
-		<javac srcdir="src/java" optimize="on" destdir="${java.io.tmpdir}/build/ipc"
-		 debug="true" debuglevel="lines,vars,source" source="1.6" target="1.6" compiler="modern">
+		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false"
+		 debuglevel="lines,vars,source" source="1.7" target="1.7" compiler="modern">
 			<compilerarg value="-Xlint:unchecked,deprecation,path,finally" />
 	    	<classpath>
 				<pathelement path="${classpath}" />
