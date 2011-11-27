@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 1.47
+ * @version 1.61
  * @since 1.0
  */
 
@@ -18,7 +18,6 @@ public class SharedData {
 	
 	public static final String ACARS_POOL = "$acarsPool$data";
 	public static final String ACARS_DAEMON = "$acarsDaemon$data";
-	public static final String ACARS_CLIENT_BUILDS = "$acarsClient$data";
 	
 	public static final String JDBC_POOL="$jdbc$pool";
 	public static final String FB_CREDS = "$fb$creds"; 
