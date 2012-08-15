@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2012 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.acars;
 
 import java.util.*;
@@ -9,7 +9,7 @@ import org.gvagroup.ipc.IPCInfo;
  * An interface to allow ACARS implementations to return Connection Pool
  * diagnostics and map entries.
  * @author Luke
- * @version 2.7
+ * @version 1.63
  * @since 1.0
  */
 
@@ -21,12 +21,6 @@ public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 	 * @return a Collection of ACARSConnection beans
 	 */
 	public Collection<byte[]> getPoolInfo(boolean showHidden);
-
-	/**
-	 * Returns the positions of all ACARS flights.
-	 * @return a Collection of RouteEntry beans
-	 */
-	public Collection<RouteEntry> getMapEntries();
 
 	/**
 	 * Returns the positions of all ACARS flights in a serialized fashion,
@@ -47,7 +41,7 @@ public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 	 * Returns connection statisitcs.
 	 * @return a Collection of ConnectionStats beans
 	 */
-	public Collection getStatistics();
+	public Collection<?> getStatistics();
 
 	/**
 	 * Returns the number of active ACARS Connections.
@@ -60,10 +54,4 @@ public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 	 * @return TRUE if there is at least one dispatch connection, otherwise FALSE
 	 */
 	public boolean isDispatchOnline();
-
-	/**
-	 * Returns the time of the last connection inacitivity check.
-	 * @return the date/time of the last inactivity check
-	 */
-	public Date getLastInactivityCheck();
 }
