@@ -4,7 +4,8 @@ package org.gvagroup.acars;
 /**
  * An interface to store ACARS Flags constants.
  * @author Luke
- * @version 2.2
+ * @author Rahul
+ * @version 5.1
  * @since 1.0
  */
 
@@ -23,6 +24,7 @@ public interface ACARSFlags {
 	public static final int FLAG_SPARMED = 0x0010;
 	public static final int FLAG_GEARDOWN = 0x0020;
 	public static final int FLAG_AFTERBURNER = 0x0040;
+	public static final int FLAG_REVERSETHRUST = 0x80000;
 	
 	public static final int FLAG_AP_GPS = 0x0100;
 	public static final int FLAG_AP_NAV = 0x0200;
