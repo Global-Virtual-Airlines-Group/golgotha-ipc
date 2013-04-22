@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2008 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2008, 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.acars;
 
 /**
@@ -24,7 +24,7 @@ public interface ACARSFlags {
 	public static final int FLAG_SPARMED = 0x0010;
 	public static final int FLAG_GEARDOWN = 0x0020;
 	public static final int FLAG_AFTERBURNER = 0x0040;
-	public static final int FLAG_REVERSETHRUST = 0x80000;
+	public static final int FLAG_REVERSETHRUST = 0x200000;
 	
 	public static final int FLAG_AP_GPS = 0x0100;
 	public static final int FLAG_AP_NAV = 0x0200;
@@ -37,5 +37,5 @@ public interface ACARSFlags {
 	public static final int FLAG_AT_IAS = 0x2000;
 	public static final int FLAG_AT_MACH = 0x4000;
 	public static final int FLAG_AT_VNAV = 0x80000;
-	public static final int FLAG_AT_ANY = 0x6000;
+	public static final int FLAG_AT_ANY = 0x86000;
 }
