@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -8,7 +8,7 @@ import java.util.logging.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 1.41
+ * @version 1.7
  * @since 1.0
  */
 
@@ -18,14 +18,13 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 
 	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class.getName());
 	
-	private static final String PACKAGE = ConnectionPoolEntry.class.getPackage().getName();
-
 	private transient ConnectionWrapper _c;
 	private StackTrace _stackInfo;
-	private Integer _id;
+	private final Integer _id;
 
 	private transient final Properties _props = new Properties();
 	private transient String _validationQuery = "SELECT 1";
+	private final boolean _isMySQL;
 
 	private boolean _inUse = false;
 	private boolean _dynamic = false;
@@ -54,6 +53,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 		}
 
 		_props.putAll(props);
+		_isMySQL = _props.getProperty("url").startsWith("jdbc:mysql");
 	}
 
 	/**
@@ -104,7 +104,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 		// Create the connection
 		Connection c = DriverManager.getConnection(_props.getProperty("url"), _props);
 		c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-		_c = new ConnectionWrapper(c, this);
+		_c = new ConnectionWrapper(c, this, _isMySQL);
 		_c.setAutoCommit(_autoCommit);
 		_lastUsed = System.currentTimeMillis();
 		_connected = true;
@@ -240,18 +240,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 		// Generate a dummy stack trace if necessary, trimming out entries from this package
 		if (logStack) {
 			try {
-				_stackInfo = new StackTrace();
-				_stackInfo.fillInStackTrace();
-				List<StackTraceElement> el = new ArrayList<StackTraceElement>(Arrays.asList(_stackInfo.getStackTrace()));
-				StackTraceElement ste = el.get(0);
-				while (ste.getClassName().startsWith(PACKAGE) && (el.size() > 1)) {
-					el.remove(0);
-					ste = el.get(0);
-				}
-
-				// Save the stack trace
-				if (el.size() > 1)
-					_stackInfo.setStackTrace(el.toArray(new StackTraceElement[0]));
+				_stackInfo = StackUtils.generate(true);
 			} catch (Exception e) {
 				log.warning("Cannot fetch stack trace - " + e.getMessage());
 			}

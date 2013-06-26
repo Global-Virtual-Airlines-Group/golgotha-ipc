@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2012 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2012, 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.acars;
 
 import java.util.*;
@@ -9,10 +9,11 @@ import org.gvagroup.ipc.IPCInfo;
  * An interface to allow ACARS implementations to return Connection Pool
  * diagnostics and map entries.
  * @author Luke
- * @version 1.63
+ * @version 1.7
  * @since 1.0
  */
 
+@SuppressWarnings("rawtypes")
 public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 
 	/**

@@ -3,13 +3,17 @@ package org.gvagroup.jdbc;
 
 import java.io.*;
 import java.sql.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-class SafePStatementWrapper implements PreparedStatement {
+class PreparedStatementWrapper implements PreparedStatement {
+	
+	private static transient final Logger log = Logger.getLogger(PreparedStatementWrapper.class.getName());
 	
 	private final PreparedStatement _s;
 	private boolean _isClosed;
 
-	SafePStatementWrapper(PreparedStatement s) {
+	PreparedStatementWrapper(PreparedStatement s) {
 		super();
 		_s = s;
 	}
@@ -36,8 +40,10 @@ class SafePStatementWrapper implements PreparedStatement {
 
 	@Override
 	public void close() throws SQLException {
-		if (_isClosed)
-			throw new SQLException("Already closed!");
+		if (_isClosed) {
+			StackTrace st = StackUtils.generate(true);
+			log.logp(Level.WARNING, PreparedStatementWrapper.class.getName(), "close", "Already Closed", st);
+		}
 		
 		_s.close();
 		_isClosed = true;
