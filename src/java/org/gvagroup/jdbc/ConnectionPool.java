@@ -176,6 +176,9 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	 */
 	public void setDriver(String driverClassName) throws ClassNotFoundException {
 		Class<?> c = Class.forName(driverClassName);
+		if (driverClassName.startsWith("com.mysql.jdbc"))
+			log.info("MySQL JDBC Driver detected");
+		
 		for (int x = 0; x < c.getInterfaces().length; x++) {
 			if (c.getInterfaces()[x].getName().equals("java.sql.Driver"))
 				return;

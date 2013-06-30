@@ -8,14 +8,14 @@ import java.util.logging.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 1.7
+ * @version 1.71
  * @since 1.0
  */
 
 class ConnectionPoolEntry implements java.io.Serializable, Comparable<ConnectionPoolEntry> {
 
 	private static final long serialVersionUID = 2682609809576974530L;
-
+	
 	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class.getName());
 	
 	private transient ConnectionWrapper _c;
@@ -24,7 +24,6 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 
 	private transient final Properties _props = new Properties();
 	private transient String _validationQuery = "SELECT 1";
-	private final boolean _isMySQL;
 
 	private boolean _inUse = false;
 	private boolean _dynamic = false;
@@ -53,7 +52,6 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 		}
 
 		_props.putAll(props);
-		_isMySQL = _props.getProperty("url").startsWith("jdbc:mysql");
 	}
 
 	/**
@@ -104,7 +102,10 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 		// Create the connection
 		Connection c = DriverManager.getConnection(_props.getProperty("url"), _props);
 		c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-		_c = new ConnectionWrapper(c, this, _isMySQL);
+		
+		// Check if we're using MySQL
+		boolean isMySQL = c.getClass().getName().startsWith("com.mysql.jdbc");
+		_c = new ConnectionWrapper(c, this, isMySQL);
 		_c.setAutoCommit(_autoCommit);
 		_lastUsed = System.currentTimeMillis();
 		_connected = true;
@@ -155,11 +156,11 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * @return TRUE if connected, FALSE if not connected
 	 */
 	boolean checkConnection() {
-		try {
-			Statement s = _c.createStatement();
-			ResultSet rs = s.executeQuery(_validationQuery);
-			rs.close();
-			s.close();
+		try (Statement s = _c.createStatement()) {
+			try (ResultSet rs = s.executeQuery(_validationQuery)) {
+				rs.next();
+			}
+			
 			return true;
 		} catch (Exception e) {
 			return false;
@@ -328,8 +329,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * @return the connection ID
 	 */
 	public final String toString() {
-		StringBuilder buf = new StringBuilder("#");
-		buf.append(_id.toString());
+		StringBuilder buf = new StringBuilder("#").append(_id.toString());
 		return buf.toString();
 	}
 }
