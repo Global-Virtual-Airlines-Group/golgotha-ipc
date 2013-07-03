@@ -102,10 +102,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 		// Create the connection
 		Connection c = DriverManager.getConnection(_props.getProperty("url"), _props);
 		c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-		
-		// Check if we're using MySQL
-		boolean isMySQL = c.getClass().getName().startsWith("com.mysql.jdbc");
-		_c = new ConnectionWrapper(c, this, isMySQL);
+		_c = new ConnectionWrapper(c, this);
 		_c.setAutoCommit(_autoCommit);
 		_lastUsed = System.currentTimeMillis();
 		_connected = true;
