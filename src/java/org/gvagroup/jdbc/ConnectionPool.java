@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -10,13 +10,13 @@ import java.util.concurrent.atomic.*;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.46
+ * @version 1.8
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
  */
 
-public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExceptionHandler {
+public class ConnectionPool implements java.io.Serializable, java.io.Closeable, Thread.UncaughtExceptionHandler {
 
 	private static final long serialVersionUID = 5092908907485396942L;
 
@@ -36,7 +36,7 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 
 	private ConnectionMonitor _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry> _cons = new TreeMap<Integer, ConnectionPoolEntry>();
-	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>(16);
+	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>();
 	private transient Thread _monitorThread;
 
 	private transient final Properties _props = new Properties();
@@ -63,12 +63,12 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 		_monitor = new ConnectionMonitor(name, 30, this);
 	}
 
-	/**
+	/*
 	 * Start the Connection Monitor thread.
 	 */
-	private void startMonitor() {
+	private void startMonitor(int priority) {
 		_monitorThread = new Thread(_monitor, _monitor.toString());
-		_monitorThread.setPriority(Thread.currentThread().getPriority());
+		_monitorThread.setPriority(Math.max(Thread.MIN_PRIORITY, priority));
 		_monitorThread.setDaemon(true);
 		_monitorThread.setUncaughtExceptionHandler(this);
 		_monitorThread.start();
@@ -134,21 +134,12 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	}
 
 	/**
-	 * Sets a JDBC connection property.
-	 * @param propertyName the property name
-	 * @param propertyValue the property value
-	 */
-	public void setProperty(String propertyName, String propertyValue) {
-		_props.setProperty(propertyName, propertyValue);
-	}
-
-	/**
 	 * Sets the maximum number of reservations of a JDBC Connection. After the maximum number of reservations have been
 	 * made, the Connection is closed and another one opened in its place.
 	 * @param maxReqs the maximum number of reuqests, or 0 to disable
 	 */
 	public void setMaxRequests(int maxReqs) {
-		_maxRequests = maxReqs;
+		_maxRequests = Math.max(0, maxReqs);
 	}
 
 	/**
@@ -167,6 +158,14 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	 */
 	public void setProperties(Map<?, ?> props) {
 		_props.putAll(props);
+	}
+	
+	/**
+	 * Sets the JDBC URL to use.
+	 * @param url the JDBC URL
+	 */
+	public void setURL(String url) {
+		_props.put("url", url);
 	}
 
 	/**
@@ -334,6 +333,14 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	public void connect(int initialSize) throws ConnectionPoolException {
 		if ((initialSize < 0) || (initialSize > _poolMaxSize))
 			throw new IllegalArgumentException("Invalid pool size - " + initialSize);
+		
+		// Check for UNIX socket
+		if (_props.containsKey("socket")) {
+			log.warning("Using UNIX socket " + _props.getProperty("socket"));
+			_props.put("socketFactory", "org.newsclub.net.mysql.AFUNIXDatabaseSocketFactory");
+			_props.put("junixsocket.file", _props.getProperty("socket"));
+			_props.remove("socket");
+		}
 
 		// Create connections
 		try {
@@ -346,12 +353,13 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 			throw new ConnectionPoolException(se);
 		}
 
-		startMonitor();
+		startMonitor(Thread.currentThread().getPriority());
 	}
 
 	/**
 	 * Disconnects the Connection pool from the JDBC data source.
 	 */
+	@Override
 	public void close() {
 		_monitorThread.interrupt();
 		try {
@@ -388,11 +396,9 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	 * @return a Collection of ConnectionInfo entries
 	 */
 	public Collection<ConnectionInfo> getPoolInfo() {
-		Collection<ConnectionInfo> results = new ArrayList<ConnectionInfo>(_cons.size());
-		for (Iterator<ConnectionPoolEntry> i = getEntries().iterator(); i.hasNext();) {
-			ConnectionPoolEntry cpe = i.next();
+		Collection<ConnectionInfo> results = new ArrayList<ConnectionInfo>(_cons.size() + 2);
+		for (ConnectionPoolEntry cpe : getEntries())
 			results.add(new ConnectionInfo(cpe));
-		}
 
 		return results;
 	}
@@ -441,10 +447,11 @@ public class ConnectionPool implements java.io.Serializable, Thread.UncaughtExce
 	/**
 	 * Connection Monitor uncaught exception handler.
 	 */
+	@Override
 	public void uncaughtException(Thread t, Throwable e) {
 		if (t == _monitorThread) {
 			log.log(Level.SEVERE, e.getMessage(), e);
-			startMonitor();
+			startMonitor(t.getPriority());
 		}
 	}
 }
