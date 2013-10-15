@@ -3,6 +3,8 @@ package org.gvagroup.jdbc;
 
 import java.sql.*;
 import java.util.*;
+import java.lang.reflect.*;
+
 import java.util.logging.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -10,7 +12,7 @@ import java.util.concurrent.atomic.*;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.8
+ * @version 1.81
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -33,6 +35,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	private final AtomicLong _waitCount = new AtomicLong();
 	private final AtomicLong _fullCount = new AtomicLong();
 	private boolean _logStack;
+	private transient boolean _isMySQL;
 
 	private ConnectionMonitor _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry> _cons = new TreeMap<Integer, ConnectionPoolEntry>();
@@ -175,7 +178,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 */
 	public void setDriver(String driverClassName) throws ClassNotFoundException {
 		Class<?> c = Class.forName(driverClassName);
-		if (driverClassName.startsWith("com.mysql.jdbc"))
+		_isMySQL = driverClassName.startsWith("com.mysql.jdbc");
+		if (_isMySQL)
 			log.info("MySQL JDBC Driver detected");
 		
 		for (int x = 0; x < c.getInterfaces().length; x++) {
@@ -361,14 +365,14 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 */
 	@Override
 	public void close() {
-		_monitorThread.interrupt();
 		try {
+			_monitorThread.interrupt();
 			_monitorThread.join(500);
 		} catch (InterruptedException ie) {
 			// empty
 		}
 
-		// Disconnect the regular connections
+		// Disconnect the connections
 		for (Iterator<ConnectionPoolEntry> i = _cons.values().iterator(); i.hasNext();) {
 			ConnectionPoolEntry cpe = i.next();
 			if (cpe.inUse())
@@ -376,6 +380,34 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 			cpe.close();
 			i.remove();
+		}
+		
+		// MySQL thread shutdown
+		if (_isMySQL) {
+			log.info("Shutting down MySQL abandoned connection thread");
+			try {
+				Class<?> c = Class.forName("com.mysql.jdbc.AbandonedConnectionCleanupThread");
+				Method m = c.getMethod("shutdown", new Class<?>[] {});
+				m.invoke(null, new Object[] {});
+				
+				// Wait for thread to die (up to 500ms)
+				Field f = c.getDeclaredField("threadRef"); f.setAccessible(false);
+				Object o = f.get(null); f.setAccessible(true);
+				if (o != null) {
+					Thread t = (Thread) o; int totalTime = 0;
+					while (t.isAlive() && (totalTime < 500)) {
+						Thread.sleep(50);
+						totalTime += 50;
+					}
+
+					if (t.isAlive())
+						throw new IllegalStateException("Thread stubbornly alive");
+				}
+			} catch (ClassNotFoundException cnfe) {
+				log.warning("Cannot load class com.mysql.jdbc.AbandonedConnectionCleanupThread");
+			} catch (Exception e) {
+				log.severe(e.getClass().getSimpleName() + " shutting down thread - " + e.getMessage());
+			}
 		}
 	}
 	
