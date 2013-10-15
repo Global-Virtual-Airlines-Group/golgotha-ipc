@@ -28,18 +28,18 @@ public class TestTransactions extends TestCase {
 	}
 	
 	private void executeSQL(Connection c, String sql) throws SQLException {
-		Statement s = c.createStatement();
-		s.execute(sql);
-		s.close();
+		try (Statement s = c.createStatement()) {
+			s.execute(sql);
+		}
 	}
 	
 	private void assertRowCount(int expectedRows, Connection c, String sql) throws SQLException {
-		Statement s = c.createStatement();
-		ResultSet rs = s.executeQuery(sql);
-		int rows = rs.next() ? rs.getInt(1) : 0;
-		rs.close();
-		s.close();
-		assertEquals(expectedRows, rows);
+		try (Statement s = c.createStatement()) {
+			try (ResultSet rs = s.executeQuery(sql)) {
+				int rows = rs.next() ? rs.getInt(1) : 0;
+				assertEquals(expectedRows, rows);
+			}
+		}
 	}
 
 	public void testMultipleRows() throws Exception {

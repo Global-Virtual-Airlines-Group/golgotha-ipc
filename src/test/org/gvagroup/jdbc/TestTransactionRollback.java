@@ -22,9 +22,9 @@ public class TestTransactionRollback extends TestCase {
 	}
 
 	protected void tearDown() throws Exception {
-		Statement s = _c.createStatement();
-		s.execute("DROP TABLE IDS");
-		s.close();
+		try (Statement s = _c.createStatement()) {
+			s.execute("DROP TABLE IDS");
+		}
 		
 		_c.close();
 		_c = null;
@@ -33,26 +33,27 @@ public class TestTransactionRollback extends TestCase {
 	}
 	
 	private void initTable() throws SQLException {
-		Statement s = _c.createStatement();
-		s.execute("CREATE TABLE IDS ( ID INTEGER UNSIGNED NOT NULL, PRIMARY KEY(ID)) Engine=INNODB");
-		s.execute("INSERT INTO IDS VALUES (1)");
-		s.close();
+		try (Statement s = _c.createStatement()) {
+			s.execute("CREATE TABLE IDS ( ID INTEGER UNSIGNED NOT NULL, PRIMARY KEY(ID)) Engine=INNODB");
+			s.execute("INSERT INTO IDS VALUES (1)");
+		}
 	}
 	
 	private int getRowCount() throws SQLException {
-		Statement s = _c.createStatement();
-		ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM IDS");
-		int rows = rs.next() ? rs.getInt(1) : -1;
-		rs.close();
-		s.close();
-		return rows;
+		try (Statement s = _c.createStatement()) {
+			try (ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM IDS")) {
+				int rows = rs.next() ? rs.getInt(1) : -1;
+				return rows;
+			}
+		}
 	}
 	
 	private void throwError() {
 		try {
-			Statement s = _c.createStatement();
-			s.execute("INSERT INTO IDS VALUES(1)");
-			s.close();
+			try (Statement s = _c.createStatement()) {
+				s.execute("INSERT INTO IDS VALUES(1)");
+			}
+
 			fail("No Error Thrown");
 		} catch (Exception e) {
 			// empty

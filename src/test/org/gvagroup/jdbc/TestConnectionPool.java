@@ -2,7 +2,6 @@ package org.gvagroup.jdbc;
 
 import java.io.*;
 import java.sql.*;
-
 import java.util.Properties;
 import java.util.concurrent.Semaphore;
 
@@ -22,7 +21,6 @@ public class TestConnectionPool extends TestCase {
 
     protected void tearDown() throws Exception {
         _pool.close();
-        _props = null;
         super.tearDown();
     }
     
@@ -67,7 +65,8 @@ public class TestConnectionPool extends TestCase {
     	lock.release();
     }
     
-    public void testConnections() throws Exception {
+    @SuppressWarnings("resource")
+	public void testConnections() throws Exception {
         _pool.setProperties(_props);
         _pool.connect(1);
         assertEquals(1, _pool.getSize());
