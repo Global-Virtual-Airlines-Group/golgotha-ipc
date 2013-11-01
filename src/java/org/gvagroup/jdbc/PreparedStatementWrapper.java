@@ -4,6 +4,13 @@ package org.gvagroup.jdbc;
 import java.io.*;
 import java.sql.*;
 
+/**
+ * A wrapper around PreparedStatement objects to prevent duplicate close calls. 
+ * @author Luke
+ * @version 1.82
+ * @since 1.8
+ */
+
 class PreparedStatementWrapper implements PreparedStatement {
 	
 	private final PreparedStatement _s;
