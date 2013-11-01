@@ -5,14 +5,15 @@ import java.sql.*;
 import java.util.*;
 import java.lang.reflect.*;
 
-import java.util.logging.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+
+import org.apache.log4j.Logger;
 
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.81
+ * @version 1.9
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -22,7 +23,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 	private static final long serialVersionUID = 5092908907485396942L;
 
-	private static transient final Logger log = Logger.getLogger(ConnectionPool.class.getName());
+	private static transient final Logger log = Logger.getLogger(ConnectionPool.class);
 
 	// The maximum amount of time a connection can be reserved before we consider
 	// it to be stale and return it anyways
@@ -217,8 +218,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		ConnectionPoolEntry cpe = _idleCons.poll();
 		if (cpe != null) {
 			Connection c = cpe.reserve(_logStack);
-			if (log.isLoggable(Level.FINER))
-				log.finer("Reserving JDBC Connection " + cpe);
+			if (log.isDebugEnabled())
+				log.debug("Reserving JDBC Connection " + cpe);
 			if (!cpe.isActive())
 				_expandCount.incrementAndGet();
 			
@@ -253,7 +254,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 				return cpe.reserve(_logStack);
 			}
 		} catch (InterruptedException ie) {
-			log.warning("Interrupted waiting for Connection");
+			log.warn("Interrupted waiting for Connection");
 		}
 
 		_fullCount.incrementAndGet();
@@ -278,13 +279,13 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 				log.info("Rolling back transactions");
 			}
 		} catch (Exception e) {
-			log.warning("Error rolling back transaction - " + e.getMessage());
+			log.warn("Error rolling back transaction - " + e.getMessage());
 			_monitor.execute();
 		}
 
 		// Check that we got a connection wrapper
 		if (!(c instanceof ConnectionWrapper)) {
-			log.warning("Invalid JDBC Connection returned");
+			log.warn("Invalid JDBC Connection returned");
 			return 0;
 		}
 
@@ -292,7 +293,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		ConnectionWrapper cw = (ConnectionWrapper) c;
 		ConnectionPoolEntry cpe = _cons.get(cw.getID());
 		if (cpe == null) {
-			log.warning("Invalid JDBC Connection returned - " + cw.getID());
+			log.warn("Invalid JDBC Connection returned - " + cw.getID());
 			return 0;
 		}
 
@@ -302,21 +303,20 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 		// If this is a stale dynamic connection, such it down
 		if (cpe.isDynamic() && (cpe.getUseCount() > MAX_USE_TIME)) {
-			log.logp(Level.SEVERE, ConnectionPool.class.getName(), "release", "Closed stale dynamic JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms", 
-					cpe.getStackInfo());
+			log.error("Closed stale dynamic JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms", cpe.getStackInfo());
 			cpe.close();
 		} else if (!cpe.isDynamic()) {
-			if (log.isLoggable(Level.FINER))
-				log.finer("Released JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms");
+			if (log.isDebugEnabled())
+				log.debug("Released JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms");
 
 			// Check if we need to restart
 			if ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests)) {
-				log.warning("Restarting JDBC Connection " + cpe + " after " + cpe.getUseCount() + " reservations");
+				log.warn("Restarting JDBC Connection " + cpe + " after " + cpe.getUseCount() + " reservations");
 				cpe.close();
 				try {
 					cpe.connect();
 				} catch (SQLException se) {
-					log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Cannot reconnect Connection " + cpe, se);
+					log.error("Cannot reconnect Connection " + cpe, se);
 				}
 			}
 		}
@@ -340,7 +340,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		
 		// Check for UNIX socket
 		if (_props.containsKey("socket")) {
-			log.warning("Using UNIX socket " + _props.getProperty("socket"));
+			log.warn("Using UNIX socket " + _props.getProperty("socket"));
 			_props.put("socketFactory", "org.newsclub.net.mysql.AFUNIXDatabaseSocketFactory");
 			_props.put("junixsocket.file", _props.getProperty("socket"));
 			_props.remove("socket");
@@ -376,7 +376,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		for (Iterator<ConnectionPoolEntry> i = _cons.values().iterator(); i.hasNext();) {
 			ConnectionPoolEntry cpe = i.next();
 			if (cpe.inUse())
-				log.warning("Forcibly closing JDBC Connection " + cpe);
+				log.warn("Forcibly closing JDBC Connection " + cpe);
 
 			cpe.close();
 			i.remove();
@@ -405,9 +405,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 						throw new IllegalStateException("Thread stubbornly alive");
 				}
 			} catch (ClassNotFoundException cnfe) {
-				log.warning("Cannot load class com.mysql.jdbc.AbandonedConnectionCleanupThread");
+				log.warn("Cannot load class com.mysql.jdbc.AbandonedConnectionCleanupThread");
 			} catch (Exception e) {
-				log.severe(e.getClass().getSimpleName() + " shutting down thread - " + e.getMessage());
+				log.error(e.getClass().getSimpleName() + " shutting down thread - " + e.getMessage());
 			}
 		}
 	}
@@ -483,7 +483,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	@Override
 	public void uncaughtException(Thread t, Throwable e) {
 		if (t == _monitorThread) {
-			log.log(Level.SEVERE, e.getMessage(), e);
+			log.error(e.getMessage(), e);
 			startMonitor(t.getPriority());
 		}
 	}

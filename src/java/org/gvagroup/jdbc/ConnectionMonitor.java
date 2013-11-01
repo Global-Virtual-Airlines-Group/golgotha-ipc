@@ -1,22 +1,23 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
 import java.sql.*;
-import java.util.logging.*;
+
+import org.apache.log4j.Logger;
 
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 1.46
+ * @version 1.9
  * @since 1.0
  */
 
 class ConnectionMonitor implements java.io.Serializable, Runnable {
 
-	private static final long serialVersionUID = 730339303146022570L;
+	private static final long serialVersionUID = -5370602877805586773L;
 	
-	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class.getName());
+	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class);
 	private static final Collection<String> _sqlStatus = Arrays.asList("08003", "08S01");
 
 	private transient ConnectionPool _pool;
@@ -76,8 +77,8 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	protected synchronized void checkPool() {
 		_poolCheckCount++;
 		_lastPoolCheck = System.currentTimeMillis();
-		if (log.isLoggable(Level.FINER))
-			log.finer("Checking Connection Pool");
+		if (log.isDebugEnabled())
+			log.debug("Checking Connection Pool");
 
 		// Loop through the entries
 		for (Iterator<ConnectionPoolEntry> i = _pool.getEntries().iterator(); i.hasNext();) {
@@ -87,16 +88,16 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 			// Check if the entry has timed out
 			if (!cpe.isActive()) {
 				if (cpe.inUse()) {
-					log.warning("Inactive connection " + cpe + " in use!");
+					log.warn("Inactive connection " + cpe + " in use!");
 					cpe.free();
-				} else if (log.isLoggable(Level.FINER))
-					log.finer("Skipping inactive connection " + cpe);
+				} else if (log.isDebugEnabled())
+					log.debug("Skipping inactive connection " + cpe);
 			} else if (cpe.inUse() && isStale) {
-				log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Releasing stale Connection " + cpe, cpe.getStackInfo());
+				log.error("Releasing stale Connection " + cpe, cpe.getStackInfo());
 				_pool.release(cpe.getWrapper());
 			} else if (cpe.isDynamic() && !cpe.inUse()) {
 				if (isStale)
-					log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Releasing stale dynamic Connection " + cpe, cpe.getStackInfo());
+					log.error("Releasing stale dynamic Connection " + cpe, cpe.getStackInfo());
 				else
 					log.info("Releasing dynamic Connection " + cpe);
 				
@@ -105,7 +106,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 			} else if (cpe.inUse())
 				log.info("Connection " + cpe + " in use");
 			else if (!cpe.inUse() && !cpe.checkConnection()) {
-				log.warning("Reconnecting Connection " + cpe);
+				log.warn("Reconnecting Connection " + cpe);
 				cpe.close();
 
 				try {
@@ -113,11 +114,11 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 					_pool.addIdle(cpe);
 				} catch (SQLException se) {
 					if (_sqlStatus.contains(se.getSQLState()))
-						log.warning("Transient SQL Error - " + se.getSQLState());
+						log.warn("Transient SQL Error - " + se.getSQLState());
 					else
-						log.warning("Unknown SQL Error code - " + se.getSQLState());
+						log.warn("Unknown SQL Error code - " + se.getSQLState());
 				} catch (Exception e) {
-					log.logp(Level.SEVERE, ConnectionMonitor.class.getName(), "CheckPool", "Error reconnecting " + cpe, e);
+					log.error("Error reconnecting " + cpe, e);
 				}
 			}
 		}
@@ -126,6 +127,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	/**
 	 * Returns the thread name.
 	 */
+	@Override
 	public String toString() {
 		return _name + " JDBC Connection Monitor";
 	}
@@ -133,6 +135,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	/**
 	 * Executes the Thread.
 	 */
+	@Override
 	public void run() {
 		log.info("Starting");
 		while (!Thread.currentThread().isInterrupted()) {

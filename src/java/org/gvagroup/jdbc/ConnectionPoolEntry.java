@@ -3,20 +3,21 @@ package org.gvagroup.jdbc;
 
 import java.sql.*;
 import java.util.*;
-import java.util.logging.*;
+
+import org.apache.log4j.Logger;
 
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 1.71
+ * @version 1.9
  * @since 1.0
  */
 
 class ConnectionPoolEntry implements java.io.Serializable, Comparable<ConnectionPoolEntry> {
 
-	private static final long serialVersionUID = 2682609809576974530L;
-	
-	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class.getName());
+	private static final long serialVersionUID = -6121720901088473809L;
+
+	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class);
 	
 	private transient ConnectionWrapper _c;
 	private StackTrace _stackInfo;
@@ -139,7 +140,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 				_c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
 			}
 		} catch (Exception e) {
-			log.severe("Error resetting autoCommit/isolation - " + e.getMessage());
+			log.error("Error resetting autoCommit/isolation - " + e.getMessage());
 		}
 
 		// Add the usage time to the total for this connection
@@ -240,7 +241,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 			try {
 				_stackInfo = StackUtils.generate(true);
 			} catch (Exception e) {
-				log.warning("Cannot fetch stack trace - " + e.getMessage());
+				log.warn("Cannot fetch stack trace - " + e.getMessage());
 			}
 		}
 
@@ -306,6 +307,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * This overrides equals behavior by comparing the underlying connection object. This allows us to get a
 	 * ConnectionPoolEntry from the pool when all we get back is the SQL Connection.
 	 */
+	@Override
 	public boolean equals(Object o2) {
 		return (o2 instanceof ConnectionPoolEntry) ? (compareTo((ConnectionPoolEntry) o2) == 0) : false;
 	}
@@ -313,10 +315,12 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	/**
 	 * Compares two entries by comparing their ID.
 	 */
+	@Override
 	public int compareTo(ConnectionPoolEntry e2) {
 		return _id.compareTo(e2._id);
 	}
 
+	@Override
 	public int hashCode() {
 		return _id.hashCode();
 	}
@@ -325,6 +329,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * Returns a text representation of the Connection ID.
 	 * @return the connection ID
 	 */
+	@Override
 	public final String toString() {
 		StringBuilder buf = new StringBuilder("#").append(_id.toString());
 		return buf.toString();
