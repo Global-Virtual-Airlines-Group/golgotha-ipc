@@ -1,4 +1,4 @@
-// Copyright 2007, 2008 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2008, 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 import java.util.*;
@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 /**
  * A utility class to dispatch events between web applications.
  * @author Luke
- * @version 1.2
+ * @version 1.82
  * @since 1.0
  */
 
@@ -63,5 +63,23 @@ public class EventDispatcher {
 		Collection<SystemEvent> results = new ArrayList<SystemEvent>(events);
 		events.clear();
 		return results;
+	}
+	
+	public static synchronized void unregister() {
+		_events.remove(Thread.currentThread());
+	}
+	
+	/**
+	 * Shuts down the dispatcher.
+	 */
+	public static synchronized void shutDown() {
+		for (Iterator<Map.Entry<Thread, Queue<SystemEvent>>> i = _events.entrySet().iterator(); i.hasNext(); ) {
+			Map.Entry<Thread, Queue<SystemEvent>> me = i.next();
+			if (me.getKey().isAlive())
+				me.getKey().interrupt();
+			
+			me.getValue().clear();
+			i.remove();
+		}
 	}
 }

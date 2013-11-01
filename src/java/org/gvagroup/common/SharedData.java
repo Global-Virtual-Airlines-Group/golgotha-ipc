@@ -1,4 +1,4 @@
-// Copyright 2007, 2010, 2011 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2010, 2011, 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 import java.io.Serializable;
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 1.61
+ * @version 1.82
  * @since 1.0
  */
 
@@ -85,9 +85,12 @@ public class SharedData {
 	public static synchronized void purge(String appCode) {
 		int objCount = 0;
 		ClassLoader myLoader = Thread.currentThread().getContextClassLoader();
-		for (Iterator<ClassLoader> i = _loaders.values().iterator(); i.hasNext(); ) {
-			ClassLoader cl = i.next();
-			if (myLoader == cl) {
+		for (Iterator<Map.Entry<String, ClassLoader>> i = _loaders.entrySet().iterator(); i.hasNext(); ) {
+			Map.Entry<String, ClassLoader> me = i.next();
+			if (myLoader == me.getValue()) {
+				if (_data.remove(me.getKey()) == null)
+					log.warning("Unable to remove data for " + me.getKey());
+					
 				i.remove();
 				objCount++;
 			}
