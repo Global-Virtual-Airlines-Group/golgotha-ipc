@@ -21,7 +21,7 @@ abstract class AbstractLifecycleListener implements LifecycleListener {
 		String t = e.getType();
 		if (Lifecycle.BEFORE_START_EVENT.equals(t))
 			onStartup();
-		else if (Lifecycle.BEFORE_STOP_EVENT.equals(t))
+		else if (Lifecycle.AFTER_STOP_EVENT.equals(t))
 			onShutdown();
 	}
 
