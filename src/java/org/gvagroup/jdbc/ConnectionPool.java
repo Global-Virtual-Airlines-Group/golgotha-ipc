@@ -390,12 +390,13 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 				Method m = c.getMethod("shutdown", new Class<?>[] {});
 				m.invoke(null, new Object[] {});
 				
-				// Wait for thread to die (up to 500ms)
-				Field f = c.getDeclaredField("threadRef"); f.setAccessible(false);
-				Object o = f.get(null); f.setAccessible(true);
+				// Wait for thread to die
+				Field f = c.getDeclaredField("threadRef"); 
+				boolean oldAccess = f.isAccessible(); f.setAccessible(true);
+				Object o = f.get(null); f.setAccessible(oldAccess);
 				if (o != null) {
 					Thread t = (Thread) o; int totalTime = 0;
-					while (t.isAlive() && (totalTime < 500)) {
+					while (t.isAlive() && (totalTime < 750)) {
 						Thread.sleep(50);
 						totalTime += 50;
 					}
