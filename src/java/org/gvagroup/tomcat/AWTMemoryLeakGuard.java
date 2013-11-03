@@ -35,8 +35,6 @@ public class AWTMemoryLeakGuard extends AbstractLifecycleListener {
 		} finally {
 			t.setContextClassLoader(cl);
 		}
-		
-		System.setProperty("java.awt.headless", "true");
 	}
 
 	/**
