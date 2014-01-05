@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.9
+ * @version 1.91
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -27,7 +27,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 	// The maximum amount of time a connection can be reserved before we consider
 	// it to be stale and return it anyways
-	static final int MAX_USE_TIME = 110 * 1000;
+	static final int MAX_USE_TIME = 125_000;
 
 	private int _poolMaxSize = 1;
 	private int _maxRequests;
@@ -248,7 +248,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 		// Wait for a new connection to become available
 		try {
-			cpe = _idleCons.poll(1250, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(900, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				_waitCount.incrementAndGet();		
 				return cpe.reserve(_logStack);

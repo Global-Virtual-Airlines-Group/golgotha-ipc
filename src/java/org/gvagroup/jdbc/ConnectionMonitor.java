@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 1.9
+ * @version 1.91
  * @since 1.0
  */
 
@@ -81,9 +81,13 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 			log.debug("Checking Connection Pool");
 
 		// Loop through the entries
-		for (Iterator<ConnectionPoolEntry> i = _pool.getEntries().iterator(); i.hasNext();) {
-			ConnectionPoolEntry cpe = i.next();
+		for (ConnectionPoolEntry cpe : _pool.getEntries()) {
 			boolean isStale = (cpe.getUseTime() > ConnectionPool.MAX_USE_TIME);
+			if (isStale) {
+				long lastActiveInterval = _lastPoolCheck - cpe.getWrapper().getLastUse();
+				log.warn("Connection reserved for " + cpe.getUseTime() + "ms, last activity " + lastActiveInterval + "ms ago");
+				isStale = (lastActiveInterval > 10_000);
+			}
 
 			// Check if the entry has timed out
 			if (!cpe.isActive()) {

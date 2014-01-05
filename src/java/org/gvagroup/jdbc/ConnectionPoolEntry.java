@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 1.9
+ * @version 1.91
  * @since 1.0
  */
 
@@ -177,11 +177,11 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	
 	/**
 	 * Returns the connection wrapper behind this ConnectionPoolEntry. This is package protected since it should only be
-	 * accessed by the conection monitor
+	 * accessed by the conection monitor.
 	 * @return the ConnectionWrapper
 	 * @see ConnectionMonitor#checkPool()
 	 */
-	Connection getWrapper() {
+	ConnectionWrapper getWrapper() {
 		return _c;
 	}
 
