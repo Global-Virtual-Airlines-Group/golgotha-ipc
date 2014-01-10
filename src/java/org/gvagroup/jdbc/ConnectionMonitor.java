@@ -84,8 +84,11 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 		for (ConnectionPoolEntry cpe : _pool.getEntries()) {
 			boolean isStale = (cpe.getUseTime() > ConnectionPool.MAX_USE_TIME);
 			if (isStale) {
+				long useTime = cpe.getUseTime();
 				long lastActiveInterval = _lastPoolCheck - cpe.getWrapper().getLastUse();
-				log.warn("Connection reserved for " + cpe.getUseTime() + "ms, last activity " + lastActiveInterval + "ms ago");
+				if ((useTime - lastActiveInterval) > 1500)
+					log.warn("Connection reserved for " + cpe.getUseTime() + "ms, last activity " + lastActiveInterval + "ms ago");
+				
 				isStale = (lastActiveInterval > 10_000);
 			}
 
@@ -93,7 +96,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 			if (!cpe.isActive()) {
 				if (cpe.inUse()) {
 					log.warn("Inactive connection " + cpe + " in use!");
-					cpe.free();
+					cpe.getWrapper().close(); // Frees the connection and resets last use
 				} else if (log.isDebugEnabled())
 					log.debug("Skipping inactive connection " + cpe);
 			} else if (cpe.inUse() && isStale) {

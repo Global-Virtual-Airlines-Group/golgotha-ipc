@@ -297,8 +297,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 			return 0;
 		}
 
-		// Free the connection
-		cpe.free();
+		// Free the connection and reset last use
+		cw.close();
 		long useTime = cpe.getUseTime();
 
 		// If this is a stale dynamic connection, such it down
@@ -321,10 +321,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 			}
 		}
 
-		// Return connection back to the pool
+		// Return connection back to the pool and return usage time
 		_idleCons.add(cpe);
-
-		// Return usage time
 		return useTime;
 	}
 

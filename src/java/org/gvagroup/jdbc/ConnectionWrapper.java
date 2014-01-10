@@ -69,7 +69,12 @@ public class ConnectionWrapper implements Connection, Comparable<ConnectionWrapp
 		_entry.free();
 	}
 	
+	/**
+	 * Forces a close of the underlying JDBC connection.
+	 * @throws SQLException
+	 */
 	void forceClose() throws SQLException {
+		recordLastUse();
 		_c.close();
 	}
 	
