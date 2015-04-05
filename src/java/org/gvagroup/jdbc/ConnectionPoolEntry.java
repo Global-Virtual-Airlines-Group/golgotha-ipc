@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 1.91
+ * @version 1.94
  * @since 1.0
  */
 
@@ -18,6 +18,9 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	private static final long serialVersionUID = -6121720901088473809L;
 
 	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class);
+	
+	// Default connection serialization
+	private static final int DEFAULT_SERIALIZATION = Connection.TRANSACTION_READ_COMMITTED;
 	
 	private transient ConnectionWrapper _c;
 	private StackTrace _stackInfo;
@@ -102,7 +105,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 
 		// Create the connection
 		Connection c = DriverManager.getConnection(_props.getProperty("url"), _props);
-		c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+		c.setTransactionIsolation(DEFAULT_SERIALIZATION);
 		_c = new ConnectionWrapper(c, this);
 		_c.setAutoCommit(_autoCommit);
 		_lastUsed = System.currentTimeMillis();
@@ -126,7 +129,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	}
 
 	/**
-	 * Return the connection to the connection pool.
+	 * Returns the connection to the connection pool.
 	 */
 	void free() {
 		if (!inUse())
@@ -137,7 +140,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 			if ((_c != null) && (_c.getAutoCommit() != _autoCommit)) {
 				log.info("Resetting autoCommit to " + String.valueOf(_autoCommit));
 				_c.setAutoCommit(_autoCommit);
-				_c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+				_c.setTransactionIsolation(DEFAULT_SERIALIZATION);
 			}
 		} catch (Exception e) {
 			log.error("Error resetting autoCommit/isolation - " + e.getMessage());
