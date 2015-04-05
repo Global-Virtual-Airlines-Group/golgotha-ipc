@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.91
+ * @version 1.94
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -25,16 +25,17 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 	private static transient final Logger log = Logger.getLogger(ConnectionPool.class);
 
-	// The maximum amount of time a connection can be reserved before we consider
-	// it to be stale and return it anyways
+	/**
+	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways
+	 */
 	static final int MAX_USE_TIME = 125_000;
 
 	private int _poolMaxSize = 1;
 	private int _maxRequests;
-	private final AtomicLong _totalRequests = new AtomicLong();
-	private final AtomicLong _expandCount = new AtomicLong();
-	private final AtomicLong _waitCount = new AtomicLong();
-	private final AtomicLong _fullCount = new AtomicLong();
+	private final LongAdder _totalRequests = new LongAdder();
+	private final LongAdder _expandCount = new LongAdder();
+	private final LongAdder _waitCount = new LongAdder();
+	private final LongAdder _fullCount = new LongAdder();
 	private boolean _logStack;
 	private transient boolean _isMySQL;
 
@@ -45,7 +46,10 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 	private transient final Properties _props = new Properties();
 	private boolean _autoCommit = true;
-
+	
+	/**
+	 * Connection Pool full exception.
+	 */
 	public static class ConnectionPoolFullException extends ConnectionPoolException {
 
 		private static final long serialVersionUID = -1618858703712722475L;
@@ -221,9 +225,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 			if (log.isDebugEnabled())
 				log.debug("Reserving JDBC Connection " + cpe);
 			if (!cpe.isActive())
-				_expandCount.incrementAndGet();
+				_expandCount.increment();
 			
-			_totalRequests.incrementAndGet();
+			_totalRequests.increment();
 			return c;
 		}
 
@@ -237,8 +241,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 					_cons.put(Integer.valueOf(cpe.getID()), cpe);
 
 					// Return back the new connection
-					_totalRequests.incrementAndGet();
-					_expandCount.incrementAndGet();
+					_totalRequests.increment();
+					_expandCount.increment();
 					return c;
 				} catch (SQLException se) {
 					throw new ConnectionPoolException(se);
@@ -248,16 +252,16 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 		// Wait for a new connection to become available
 		try {
-			cpe = _idleCons.poll(900, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(950, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
-				_waitCount.incrementAndGet();		
+				_waitCount.increment();		
 				return cpe.reserve(_logStack);
 			}
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
 		}
 
-		_fullCount.incrementAndGet();
+		_fullCount.increment();
 		throw new ConnectionPoolFullException();
 	}
 
@@ -302,16 +306,16 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		long useTime = cpe.getUseTime();
 
 		// If this is a stale dynamic connection, such it down
-		if (cpe.isDynamic() && (cpe.getUseCount() > MAX_USE_TIME)) {
-			log.error("Closed stale dynamic JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms", cpe.getStackInfo());
+		if (cpe.isDynamic() && (useTime > MAX_USE_TIME)) {
+			log.error("Closed stale dynamic JDBC Connection " + cpe + " after " + useTime + "ms", cpe.getStackInfo());
 			cpe.close();
 		} else if (!cpe.isDynamic()) {
 			if (log.isDebugEnabled())
-				log.debug("Released JDBC Connection " + cpe + " after " + cpe.getUseTime() + "ms");
+				log.debug("Released JDBC Connection " + cpe + " after " + useTime + "ms");
 
 			// Check if we need to restart
 			if ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests)) {
-				log.warn("Restarting JDBC Connection " + cpe + " after " + cpe.getUseCount() + " reservations");
+				log.warn("Restarting JDBC Connection " + cpe + " after " + cpe.getSessionUseCount() + " (total " + cpe.getUseCount() + ") reservations");
 				cpe.close();
 				try {
 					cpe.connect();
