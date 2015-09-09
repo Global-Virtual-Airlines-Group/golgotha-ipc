@@ -1,10 +1,10 @@
-// Copyright 2008 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2008, 2015 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 /**
  * A cross-application event to track events linked to a specific User.
  * @author Luke
- * @version 1.50
+ * @version 1.95
  * @snce 1.2
  */
 
@@ -12,7 +12,7 @@ public class UserEvent extends SystemEvent {
 
 	private static final long serialVersionUID = -4485607718271551135L;
 	
-	private int _userID;
+	private final int _userID;
 
 	/**
 	 * Creates the Event.
@@ -35,6 +35,7 @@ public class UserEvent extends SystemEvent {
 	/**
 	 * Compares two events by comparing their user and event codes.
 	 */
+	@Override
 	public int compareTo(SystemEvent se2) {
 		if (se2 instanceof UserEvent) {
 			UserEvent ue2 = (UserEvent) se2;
