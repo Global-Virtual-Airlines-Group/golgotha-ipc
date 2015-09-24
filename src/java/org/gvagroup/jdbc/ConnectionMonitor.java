@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 1.91
+ * @version 1.96
  * @since 1.0
  */
 
@@ -20,8 +20,8 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class);
 	private static final Collection<String> _sqlStatus = Arrays.asList("08003", "08S01");
 
-	private transient ConnectionPool _pool;
-	private String _name = "";
+	private transient final ConnectionPool _pool;
+	private final String _name;
 	private long _sleepTime;
 	
 	private long _poolCheckCount;
@@ -83,7 +83,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 		// Loop through the entries
 		for (ConnectionPoolEntry cpe : _pool.getEntries()) {
 			boolean isStale = (cpe.getUseTime() > ConnectionPool.MAX_USE_TIME);
-			if (isStale) {
+			if (isStale && cpe.isActive()) {
 				long useTime = cpe.getUseTime();
 				long lastActiveInterval = _lastPoolCheck - cpe.getWrapper().getLastUse();
 				if ((useTime - lastActiveInterval) > 1500)
@@ -96,7 +96,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 			if (!cpe.isActive()) {
 				if (cpe.inUse()) {
 					log.warn("Inactive connection " + cpe + " in use!");
-					cpe.getWrapper().close(); // Frees the connection and resets last use
+					cpe.close(); // Resets last use
 				} else if (log.isDebugEnabled())
 					log.debug("Skipping inactive connection " + cpe);
 			} else if (cpe.inUse() && isStale) {
