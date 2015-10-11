@@ -1,4 +1,4 @@
-// Copyright 2013 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2013, 2015 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.io.*;
@@ -7,7 +7,7 @@ import java.sql.*;
 /**
  * A wrapper around PreparedStatement objects to prevent duplicate close calls. 
  * @author Luke
- * @version 1.82
+ * @version 1.96
  * @since 1.8
  */
 
@@ -19,6 +19,11 @@ class PreparedStatementWrapper implements PreparedStatement {
 	PreparedStatementWrapper(PreparedStatement s) {
 		super();
 		_s = s;
+	}
+
+	@Override
+	public String toString() {
+		return String.valueOf(_s);
 	}
 	
 	@Override
