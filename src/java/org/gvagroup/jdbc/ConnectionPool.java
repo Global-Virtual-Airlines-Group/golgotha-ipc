@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.94
+ * @version 1.97
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -38,8 +38,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	private final LongAdder _fullCount = new LongAdder();
 	private boolean _logStack;
 	private transient boolean _isMySQL;
+	private long _lastPoolFullTime;
 
-	private ConnectionMonitor _monitor;
+	private final ConnectionMonitor _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry> _cons = new TreeMap<Integer, ConnectionPoolEntry>();
 	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>();
 	private transient Thread _monitorThread;
@@ -66,7 +67,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 */
 	public ConnectionPool(int maxSize, String name) {
 		super();
-		DriverManager.setLoginTimeout(5);
+		DriverManager.setLoginTimeout(2);
 		_poolMaxSize = maxSize;
 		_monitor = new ConnectionMonitor(name, 30, this);
 	}
@@ -262,6 +263,20 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		}
 
 		_fullCount.increment();
+		
+		// Dump stack if this is our first error in a while
+		long now = System.currentTimeMillis();
+		if ((now - _lastPoolFullTime) > 60_000) {
+			log.error("Pool Full, idleCons = " + _idleCons);
+			synchronized (_cons) {
+				for (Map.Entry<Integer, ConnectionPoolEntry> me : _cons.entrySet()) {
+					cpe = me.getValue();
+					log.error("Connection " + me.getKey() + " connected = " + cpe.isConnected() + ", active = " + cpe.isActive(), cpe.getStackInfo());
+				}
+			}
+		}
+		
+		_lastPoolFullTime = now;
 		throw new ConnectionPoolFullException();
 	}
 
