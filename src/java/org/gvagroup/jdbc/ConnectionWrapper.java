@@ -1,4 +1,4 @@
-// Copyright 2007, 2009, 2011, 2013, 2014 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2009, 2011, 2013, 2014, 2106 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -10,7 +10,7 @@ import java.util.concurrent.Executor;
  * certain sensitive methods (such as {@link Connection#close()}) from being called by
  * command code. 
  * @author Luke
- * @version 1.91
+ * @version 2.0
  * @since 1.0
  */
 
@@ -369,14 +369,17 @@ public class ConnectionWrapper implements Connection, Comparable<ConnectionWrapp
 		return _c.unwrap(iface);
 	}
 	
+	@Override
 	public int compareTo(ConnectionWrapper cw2) {
 		return _id.compareTo(cw2._id);
 	}
 
+	@Override
 	public int hashCode() {
 		return toString().hashCode();
 	}
 	
+	@Override
 	public String toString() {
 		return "ConnectionWrapper-" + String.valueOf(_id);
 	}
