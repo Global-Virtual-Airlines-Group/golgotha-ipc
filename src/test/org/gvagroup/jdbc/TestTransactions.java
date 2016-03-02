@@ -6,11 +6,13 @@ import java.util.Properties;
 
 import junit.framework.TestCase;
 
+@SuppressWarnings("static-method")
 public class TestTransactions extends TestCase {
 	
 	private Properties _props;
 	private ConnectionPool _pool;
 
+	@Override
 	protected void setUp() throws Exception {
         super.setUp();
         _props = new Properties();
@@ -21,6 +23,7 @@ public class TestTransactions extends TestCase {
         _pool.setDriver(_props.getProperty("driver"));
 	}
 
+	@Override
 	protected void tearDown() throws Exception {
         _pool.close();
         _props = null;

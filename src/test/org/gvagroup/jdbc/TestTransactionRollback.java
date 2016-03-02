@@ -12,6 +12,7 @@ public class TestTransactionRollback extends TestCase {
 	private final Properties _props = new Properties();
 	private Connection _c;
 
+	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
 		
@@ -21,6 +22,7 @@ public class TestTransactionRollback extends TestCase {
         Class.forName(_props.getProperty("driver"));
 	}
 
+	@Override
 	protected void tearDown() throws Exception {
 		try (Statement s = _c.createStatement()) {
 			s.execute("DROP TABLE IDS");

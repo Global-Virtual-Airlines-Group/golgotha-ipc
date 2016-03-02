@@ -4,8 +4,10 @@ import java.lang.reflect.*;
 
 import junit.framework.TestCase;
 
+@SuppressWarnings("static-method")
 public class TestReflection extends TestCase {
 
+	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
 		Class<?> c = Class.forName("com.mysql.jdbc.AbandonedConnectionCleanupThread");

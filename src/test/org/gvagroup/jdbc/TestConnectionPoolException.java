@@ -2,6 +2,7 @@ package org.gvagroup.jdbc;
 
 import junit.framework.TestCase;
 
+@SuppressWarnings("static-method")
 public class TestConnectionPoolException extends TestCase {
     
     public void testMessage() {
@@ -12,7 +13,7 @@ public class TestConnectionPoolException extends TestCase {
         }
     }
     
-    public void testCause() {
+	public void testCause() {
         Exception e = new NullPointerException();
         
         try {

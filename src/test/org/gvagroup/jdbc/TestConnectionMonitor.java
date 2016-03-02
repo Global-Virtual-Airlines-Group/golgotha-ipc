@@ -4,15 +4,18 @@ import java.util.ArrayList;
 
 import junit.framework.TestCase;
 
+@SuppressWarnings("static-method")
 public class TestConnectionMonitor extends TestCase {
 
     private ConnectionMonitor _cm;
     
+    @Override
     protected void setUp() throws Exception {
         super.setUp();
         _cm = new ConnectionMonitor("test", 3, new ConnectionPool(1, "test"));
     }
 
+    @Override
     protected void tearDown() throws Exception {
         _cm = null;
         super.tearDown();

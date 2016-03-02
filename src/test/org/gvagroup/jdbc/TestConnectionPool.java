@@ -11,7 +11,8 @@ public class TestConnectionPool extends TestCase {
 
     private ConnectionPool _pool;
     private Properties _props;
-    
+
+    @Override
     protected void setUp() throws Exception {
         super.setUp();
         _props = new Properties();
@@ -19,6 +20,7 @@ public class TestConnectionPool extends TestCase {
         _pool = new ConnectionPool(2, "test");
     }
 
+    @Override
     protected void tearDown() throws Exception {
         _pool.close();
         super.tearDown();
@@ -55,6 +57,7 @@ public class TestConnectionPool extends TestCase {
         }
     }
     
+    @SuppressWarnings("static-method")
     public void testSemaphore() {
     	Semaphore lock = new Semaphore(1, true);
     	assertTrue(lock.tryAcquire());

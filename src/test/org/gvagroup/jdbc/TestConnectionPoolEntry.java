@@ -12,6 +12,7 @@ public class TestConnectionPoolEntry extends TestCase {
     private ConnectionPoolEntry _cpe;
     private Properties _props;
     
+    @Override
     protected void setUp() throws Exception {
         super.setUp();
         _props = new Properties();
@@ -22,6 +23,7 @@ public class TestConnectionPoolEntry extends TestCase {
         _c = _cpe.getConnection();
     }
 
+    @Override
     protected void tearDown() throws Exception {
         _cpe.close();
         _c = null;
