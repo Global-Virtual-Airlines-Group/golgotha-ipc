@@ -33,7 +33,7 @@ public class SharedLog4JLoader extends AbstractLifecycleListener {
 		try (InputStream is = new FileInputStream(propFile)) {
 			PropertyConfigurator.configure(is);
 			log = Logger.getLogger(SharedLog4JLoader.class);
-			log.info("Initialized shared log4j");
+			log.fatal("Initialized shared log4j");
 		} catch (IOException ie) {
 			System.err.println("Cannot init log4j - " + ie.getMessage());
 			ie.printStackTrace(System.err);
