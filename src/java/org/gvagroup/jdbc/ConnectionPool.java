@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 1.97
+ * @version 2.0
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -120,7 +120,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 * @return the date/time of the last validation run
 	 * @see ConnectionMonitor#getLastCheck()
 	 */
-	public java.util.Date getLastValidation() {
+	public java.time.Instant getLastValidation() {
 		return _monitor.getLastCheck();
 	}
 

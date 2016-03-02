@@ -3,6 +3,7 @@ package org.gvagroup.jdbc;
 
 import java.util.*;
 import java.sql.*;
+import java.time.Instant;
 
 import org.apache.log4j.Logger;
 
@@ -60,8 +61,8 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	 * Returns the last time the connection pool was validated.
 	 * @return the date/time of the last validation run, or null if never
 	 */
-	public java.util.Date getLastCheck() {
-		return (_lastPoolCheck == 0) ? null : new java.util.Date(_lastPoolCheck);
+	public java.time.Instant getLastCheck() {
+		return (_lastPoolCheck == 0) ? null : Instant.ofEpochMilli(_lastPoolCheck);
 	}
 
 	/**

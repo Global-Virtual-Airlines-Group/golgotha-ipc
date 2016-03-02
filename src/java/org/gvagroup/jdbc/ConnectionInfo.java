@@ -1,12 +1,12 @@
-// Copyright 2005, 2007, 2008, 2009, 2010 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2007, 2008, 2009, 2010, 2016 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * A bean to store information about a JDBC connection pool entry.
  * @author Luke
- * @version 1.41
+ * @version 2.0
  * @since 1.0
  */
 
@@ -14,16 +14,16 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
    
 	private static final long serialVersionUID = -6631743019256780021L;
 	
-	private int _id;
-   private boolean _isDynamic;
-   private boolean _isConnected;
-   private boolean _inUse;
-   private long _useCount;
-   private long _sessionUseCount;
-   private long _totalUse;
-   private long _currentUse;
-   private Date _lastUsed;
-   private Throwable _trace;
+	private final int _id;
+	private final boolean _isDynamic;
+	private final boolean _isConnected;
+	private final boolean _inUse;
+	private final long _useCount;
+	private final long _sessionUseCount;
+	private final long _totalUse;
+	private final long _currentUse;
+	private final Instant _lastUsed;
+	private final Throwable _trace;
 
    /**
     * Creates a new ConnectionInfo object from a Connection Pool entry.
@@ -40,8 +40,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
       _totalUse = entry.getTotalUseTime();
       _currentUse = entry.getUseTime();
       _trace = entry.getStackInfo();
-      if (entry.getLastUseTime() > 0)
-    	  _lastUsed = new Date(entry.getLastUseTime());
+      _lastUsed = (entry.getLastUseTime() > 0) ? Instant.ofEpochMilli(entry.getLastUseTime()) : null;
    }
    
    /**
@@ -121,7 +120,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
     * Returns the last time this connection was reserved.
     * @return the last use date/time, or null if never
     */
-   public Date getLastUsed() {
+   public Instant getLastUsed() {
 	   return _lastUsed;
    }
    
@@ -136,20 +135,14 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
    /**
     * Compares two ConnectionInfo objects by comparing their IDs and usage counts.
     */
+   @Override
    public int compareTo(ConnectionInfo ci2) {
       int tmpResult = Integer.valueOf(_id).compareTo(Integer.valueOf(ci2._id));
       return (tmpResult == 0) ? Long.valueOf(_useCount).compareTo(Long.valueOf(ci2._useCount)) : tmpResult;
    }
    
+   @Override
    public int hashCode() {
 	   return Integer.valueOf(_id).hashCode();
-   }
-   
-   /**
-    * Returns the CSS class name used to display this bean in a view table.
-    * @return the CSS class name
-    */
-   public String getRowClassName() {
-      return _inUse ? "opt1" : null;
    }
 }
