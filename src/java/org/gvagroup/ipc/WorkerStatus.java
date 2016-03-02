@@ -1,10 +1,10 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2010 Global Virtual Airline Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2010, 2016 Global Virtual Airline Group. All Rights Reserved.
 package org.gvagroup.ipc;
 
 /**
  * A bean to return worker thread information.
  * @author Luke
- * @version 1.4
+ * @version 2.0
  * @since 1.4
  */
 
@@ -102,15 +102,18 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 	/**
 	 * Compares two workers by comparing their sort ordering and names.
 	 */
+	@Override
 	public int compareTo(WorkerStatus ws2) {
 		int tmpResult = Integer.valueOf(_sortOrder).compareTo(Integer.valueOf(ws2._sortOrder));
 		return (tmpResult == 0) ? _name.compareTo(ws2._name) : tmpResult; 
 	}
 	
+	@Override
 	public boolean equals(Object o) {
 		return (o instanceof WorkerStatus) && (compareTo((WorkerStatus) o) == 0);
 	}
 	
+	@Override
 	public int hashCode() {
 		return toString().hashCode();
 	}
@@ -118,11 +121,8 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 	/**
 	 * Returns the worker name.
 	 */
+	@Override
 	public String toString() {
 		return _name;
-	}
-	
-	public String getRowClassName() {
-		return _isRunning ? null : "warn";
 	}
 }
