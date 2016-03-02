@@ -2,8 +2,8 @@
 <project default="compile">
 	<!-- Compile shared classes -->
 	<target name="compile">
-		<property name="v.major" value="1" />
-		<property name="v.minor" value="97" />
+		<property name="v.major" value="2" />
+		<property name="v.minor" value="00" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
