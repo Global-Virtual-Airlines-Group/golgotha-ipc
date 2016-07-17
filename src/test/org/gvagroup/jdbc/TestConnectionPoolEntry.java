@@ -79,11 +79,12 @@ public class TestConnectionPoolEntry extends TestCase {
     }
     
     public void testEquality() throws SQLException {
-        Connection c2 = DriverManager.getConnection(_props.getProperty("url"), _props);
-        assertTrue(_cpe.equals(_c));
-        assertFalse(_cpe.equals(c2));
-        assertFalse(_cpe.equals(new Object()));
-        assertFalse(_cpe.equals(null));
+        try (Connection c2 = DriverManager.getConnection(_props.getProperty("url"), _props)) {
+        	assertTrue(_cpe.equals(_c));
+        	assertFalse(_cpe.equals(c2));
+        	assertFalse(_cpe.equals(new Object()));
+        	assertFalse(_cpe.equals(null));
+        }
     }
     
     public void testIndexOf() {
