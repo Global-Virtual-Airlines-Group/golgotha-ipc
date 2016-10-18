@@ -10,7 +10,7 @@ import java.util.concurrent.Executor;
  * certain sensitive methods (such as {@link Connection#close()}) from being called by
  * command code. 
  * @author Luke
- * @version 2.0
+ * @version 2.10
  * @since 1.0
  */
 
@@ -27,7 +27,6 @@ public class ConnectionWrapper implements Connection, Comparable<ConnectionWrapp
 	 * Creates the wrapper.
 	 * @param c the JDBC connection
 	 * @param cpe the ConnectionPoolEntry to wrap
-	 * @param isMySQL TRUE if this is a MySQL connection needing a wrapper, otherwise FALSE
 	 */
 	ConnectionWrapper(Connection c, ConnectionPoolEntry cpe) {
 		super();

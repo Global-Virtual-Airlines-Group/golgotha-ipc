@@ -73,6 +73,7 @@ public class TileAddress implements  java.io.Serializable, Comparable<TileAddres
 	 * @param px the zero-offset X coordinate
 	 * @param py the zero-offset Y coordinate
 	 * @param zoom the zoom level
+	 * @return the new TileAddress
 	 */
 	public static TileAddress fromPixel(int px, int py, int zoom) {
 		return new TileAddress(px / Tile.WIDTH, py / Tile.HEIGHT, zoom);

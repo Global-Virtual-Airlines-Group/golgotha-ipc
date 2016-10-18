@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.0
+ * @version 2.10
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -431,6 +431,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	
 	/**
 	 * Adds a connection entry back to the list of idle connections.
+	 * @param cpe the ConnectionPoolEntry
 	 * @return TRUE if the connection was not present, otherwise FALSE
 	 */
 	boolean addIdle(ConnectionPoolEntry cpe) {

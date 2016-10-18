@@ -4,7 +4,7 @@ package org.gvagroup.ipc;
 /**
  * A bean to return worker thread information.
  * @author Luke
- * @version 2.0
+ * @version 2.10
  * @since 1.4
  */
 
@@ -94,6 +94,7 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 	
 	/**
 	 * Returns the sort order value.
+	 * @return the sort order
 	 */
 	public int getSortOrder() {
 		return _sortOrder;
@@ -118,9 +119,6 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 		return toString().hashCode();
 	}
 	
-	/**
-	 * Returns the worker name.
-	 */
 	@Override
 	public String toString() {
 		return _name;

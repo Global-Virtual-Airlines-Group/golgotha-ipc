@@ -1,4 +1,4 @@
-// Copyright 2007 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2016 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.ipc;
 
 import java.util.Collection;
@@ -6,8 +6,9 @@ import java.util.Collection;
 /**
  * An interface to define classes that can dump info via serialization.
  * @author Luke
- * @version 1.0
+ * @version 2.10
  * @since 1.0
+ * @param <T> the serialized output type
  */
 
 public interface IPCInfo<T extends java.io.Serializable> {

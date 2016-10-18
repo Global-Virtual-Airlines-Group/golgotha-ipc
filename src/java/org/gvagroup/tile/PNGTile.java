@@ -36,7 +36,8 @@ public class PNGTile extends AbstractTile implements CompressedTile {
 	
 	/**
 	 * Creates a new PNG tile from an existing tile.
-	 * @param st the existing tile
+	 * @param addr the TileAddress
+	 * @param img the BufferedImage
 	 */
 	public PNGTile(TileAddress addr, java.awt.image.BufferedImage img) {
 		super(addr);

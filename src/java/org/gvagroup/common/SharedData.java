@@ -1,4 +1,4 @@
-// Copyright 2007, 2010, 2011, 2013 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2010, 2011, 2013, 2016 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 import java.io.Serializable;
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 1.82
+ * @version 2.10
  * @since 1.0
  */
 
@@ -102,6 +102,7 @@ public class SharedData {
 	
 	/**
 	 * Returns a string representation of the common data store.
+	 * @return the data toString()
 	 */
 	public static String getData() {
 		return _data.toString();
