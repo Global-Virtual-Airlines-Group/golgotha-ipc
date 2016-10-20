@@ -9,11 +9,11 @@ import org.gvagroup.ipc.IPCInfo;
  * An interface to allow ACARS implementations to return Connection Pool
  * diagnostics and map entries.
  * @author Luke
- * @version 2.0
+ * @version 2.10
  * @since 1.0
  */
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({ "rawtypes", "javadoc" })
 public interface ACARSAdminInfo<RouteEntry> extends IPCInfo {
 
 	/**
