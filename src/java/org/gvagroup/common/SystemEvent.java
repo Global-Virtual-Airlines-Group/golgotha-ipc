@@ -1,10 +1,10 @@
-// Copyright 2007, 2008, 2010, 2011, 2012, 2015 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2008, 2010, 2011, 2012, 2015, 2017 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 /**
  * A class to hold cross-application event data.
  * @author Luke
- * @version 1.95
+ * @version 2.11
  * @since 1.0
  */
 
@@ -12,8 +12,11 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 	
 	private static final long serialVersionUID = -4971005909500879396L;
 
+	/**
+	 * Event type.
+	 */
 	public enum Type {
-		AIRPORT_RELOAD, AIRLINE_RELOAD, USER_SUSPEND, USER_INVALIDATE, MVS_RELOAD, TZ_RELOAD, CACHE_FLUSH;
+		AIRPORT_RELOAD, AIRLINE_RELOAD, USER_SUSPEND, USER_INVALIDATE, MVS_RELOAD, TZ_RELOAD, CACHE_FLUSH, CACHE_STATS;
 	}
 	
 	private final Type _code;
@@ -35,9 +38,6 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 		return _code;
 	}
 	
-	/**
-	 * Compares two events by comparing their codes.
-	 */
 	@Override
 	public int compareTo(SystemEvent ev2) {
 		return _code.compareTo(ev2._code);
