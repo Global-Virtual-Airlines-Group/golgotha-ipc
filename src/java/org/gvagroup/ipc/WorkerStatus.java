@@ -1,30 +1,22 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2010, 2016 Global Virtual Airline Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2010, 2016, 2017 Global Virtual Airline Group. All Rights Reserved.
 package org.gvagroup.ipc;
 
 /**
  * A bean to return worker thread information.
  * @author Luke
- * @version 2.10
+ * @version 2.12
  * @since 1.4
  */
 
 public class WorkerStatus implements Comparable<WorkerStatus> {
 	
-	public static final int STATUS_UNKNOWN = 0;
-	public static final int STATUS_SHUTDOWN = 1;
-	public static final int STATUS_ERROR = 3;
-	public static final int STATUS_START = 4;
-	public static final int STATUS_INIT = 5;
-	
-	public static final String[] STATUS_NAME = {"Unknown", "Shutdown", "?", "Error", "Started", "Initializing" };
-	
 	private long _execStartTime;
 	private long _execStopTime;
 	
-	private String _name;
+	private final String _name;
 	private String _msg;
-	private int _status;
-	private int _sortOrder;
+	private WorkerState _status;
+	private final int _sortOrder;
 	private long _execCount;
 	private boolean _isRunning;
 	
@@ -43,16 +35,12 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 		return _msg;
 	}
 	
-	public synchronized int getStatus() {
+	public WorkerState getStatus() {
 		return _status;
 	}
 	
 	public boolean getAlive() {
 		return _isRunning;
-	}
-	
-	public String getStatusName() {
-		return STATUS_NAME[getStatus()];
 	}
 	
 	public long getExecutionCount() {
@@ -67,12 +55,8 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 		_isRunning = isAlive;
 	}
 	
-	public synchronized void setStatus(int newStatus) {
-		if ((newStatus >= 0) && (newStatus < STATUS_NAME.length)) {
-			_status = newStatus;
-		} else {
-			_status = STATUS_UNKNOWN;
-		}
+	public synchronized void setStatus(WorkerState newStatus) {
+		_status = newStatus;
 	}
 	
 	public synchronized void execute() {
