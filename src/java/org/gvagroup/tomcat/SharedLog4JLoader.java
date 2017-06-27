@@ -8,7 +8,7 @@ import org.apache.log4j.*;
 /**
  * A Tomcat lifecycle listener to load Log4j.
  * @author Luke
- * @version 1.92
+ * @version 2.2
  * @since 1.9
  */
 
@@ -29,7 +29,8 @@ public class SharedLog4JLoader extends AbstractLifecycleListener {
 	 * Startup handler. Initializes log4j.
 	 */
 	@Override
-	void onStartup() {
+	void onStartup(boolean isAfter) {
+		if (isAfter) return;
 		try (InputStream is = new FileInputStream(propFile)) {
 			PropertyConfigurator.configure(is);
 			log = Logger.getLogger(SharedLog4JLoader.class);
@@ -44,7 +45,8 @@ public class SharedLog4JLoader extends AbstractLifecycleListener {
 	 * Shutdown handler. Terminates log4j.
 	 */
 	@Override
-	void onShutdown() {
+	void onShutdown(boolean isAfter) {
+		if (!isAfter) return;
 		log.fatal("Shutting down log4j");
 		LogManager.shutdown();
 	}

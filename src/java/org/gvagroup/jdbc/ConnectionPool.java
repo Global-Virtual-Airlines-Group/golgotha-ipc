@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.10
+ * @version 2.14
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -26,7 +26,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	private static transient final Logger log = Logger.getLogger(ConnectionPool.class);
 
 	/**
-	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways
+	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways.
 	 */
 	static final int MAX_USE_TIME = 125_000;
 
@@ -401,10 +401,10 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		
 		// MySQL thread shutdown
 		if (_isMySQL) {
-			log.info("Shutting down MySQL abandoned connection thread");
+			log.debug("Shutting down MySQL abandoned connection thread via checkedShutdown()");
 			try {
 				Class<?> c = Class.forName("com.mysql.jdbc.AbandonedConnectionCleanupThread");
-				Method m = c.getMethod("shutdown", new Class<?>[] {});
+				Method m = c.getMethod("checkedShutdown", new Class<?>[] {});
 				m.invoke(null, new Object[] {});
 				
 				// Wait for thread to die
@@ -413,13 +413,10 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 				Object o = f.get(null); f.setAccessible(oldAccess);
 				if (o != null) {
 					Thread t = (Thread) o; int totalTime = 0;
-					while (t.isAlive() && (totalTime < 750)) {
+					while (t.isAlive() && (totalTime < 250)) {
 						Thread.sleep(50);
 						totalTime += 50;
 					}
-
-					if (t.isAlive())
-						throw new IllegalStateException("Thread stubbornly alive");
 				}
 			} catch (ClassNotFoundException cnfe) {
 				log.warn("Cannot load class com.mysql.jdbc.AbandonedConnectionCleanupThread");
@@ -448,9 +445,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 */
 	public Collection<ConnectionInfo> getPoolInfo() {
 		Collection<ConnectionInfo> results = new ArrayList<ConnectionInfo>(_cons.size() + 2);
-		for (ConnectionPoolEntry cpe : getEntries())
-			results.add(new ConnectionInfo(cpe));
-
+		_cons.values().forEach(cpe -> results.add(new ConnectionInfo(cpe)));
 		return results;
 	}
 
