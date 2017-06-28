@@ -78,7 +78,8 @@ public class TestConnectionPoolEntry extends TestCase {
         cpe2.close();
     }
     
-    public void testEquality() throws SQLException {
+    @SuppressWarnings("unlikely-arg-type")
+	public void testEquality() throws SQLException {
         try (Connection c2 = DriverManager.getConnection(_props.getProperty("url"), _props)) {
         	assertTrue(_cpe.equals(_c));
         	assertFalse(_cpe.equals(c2));
