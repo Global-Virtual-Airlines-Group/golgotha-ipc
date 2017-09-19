@@ -143,6 +143,6 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
    
    @Override
    public int hashCode() {
-	   return Integer.valueOf(_id).hashCode();
+	   return _id;
    }
 }
