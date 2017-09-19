@@ -1,4 +1,4 @@
-// Copyright 2007, 2009, 2011, 2013, 2014, 2106 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2009, 2011, 2013, 2014, 2016, 2017 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -10,13 +10,13 @@ import java.util.concurrent.Executor;
  * certain sensitive methods (such as {@link Connection#close()}) from being called by
  * command code. 
  * @author Luke
- * @version 2.10
+ * @version 2.21
  * @since 1.0
  */
 
 public class ConnectionWrapper implements Connection, Comparable<ConnectionWrapper> {
 	
-	private final Integer _id;
+	private final int _id;
 	private transient final Connection _c;
 	private transient final ConnectionPoolEntry _entry;
 	
@@ -31,16 +31,16 @@ public class ConnectionWrapper implements Connection, Comparable<ConnectionWrapp
 	ConnectionWrapper(Connection c, ConnectionPoolEntry cpe) {
 		super();
 		_c = c;
-		_id = Integer.valueOf(cpe.getID());
+		_id = cpe.getID();
 		_entry = cpe;
 	}
 	
 	/**
-	 * Returns the Connection Pool ID for this Connection
+	 * Returns the Connection Pool ID for this Connection.
 	 * @return the ID
 	 * @see ConnectionPoolEntry#getID()
 	 */
-	public Integer getID() {
+	public int getID() {
 		return _id;
 	}
 	
@@ -370,7 +370,7 @@ public class ConnectionWrapper implements Connection, Comparable<ConnectionWrapp
 	
 	@Override
 	public int compareTo(ConnectionWrapper cw2) {
-		return _id.compareTo(cw2._id);
+		return Integer.compare(_id, cw2._id);
 	}
 
 	@Override

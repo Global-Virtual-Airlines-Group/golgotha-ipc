@@ -4,7 +4,7 @@ package org.gvagroup.ipc;
 /**
  * A bean to return worker thread information.
  * @author Luke
- * @version 2.12
+ * @version 2.21
  * @since 1.4
  */
 
@@ -89,7 +89,7 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 	 */
 	@Override
 	public int compareTo(WorkerStatus ws2) {
-		int tmpResult = Integer.valueOf(_sortOrder).compareTo(Integer.valueOf(ws2._sortOrder));
+		int tmpResult = Integer.compare(_sortOrder, ws2._sortOrder);
 		return (tmpResult == 0) ? _name.compareTo(ws2._name) : tmpResult; 
 	}
 	

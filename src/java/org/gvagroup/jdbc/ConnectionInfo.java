@@ -1,4 +1,4 @@
-// Copyright 2005, 2007, 2008, 2009, 2010, 2016 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2007, 2008, 2009, 2010, 2016, 2017 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.time.Instant;
@@ -6,7 +6,7 @@ import java.time.Instant;
 /**
  * A bean to store information about a JDBC connection pool entry.
  * @author Luke
- * @version 2.0
+ * @version 2.21
  * @since 1.0
  */
 
@@ -137,8 +137,8 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
     */
    @Override
    public int compareTo(ConnectionInfo ci2) {
-      int tmpResult = Integer.valueOf(_id).compareTo(Integer.valueOf(ci2._id));
-      return (tmpResult == 0) ? Long.valueOf(_useCount).compareTo(Long.valueOf(ci2._useCount)) : tmpResult;
+      int tmpResult = Integer.compare(_id, ci2._id);
+      return (tmpResult == 0) ? Long.compare(_useCount, ci2._useCount) : tmpResult;
    }
    
    @Override

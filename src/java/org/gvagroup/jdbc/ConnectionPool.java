@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.14
+ * @version 2.21
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -310,7 +310,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 
 		// Find the connection pool entry and free it
 		ConnectionWrapper cw = (ConnectionWrapper) c;
-		ConnectionPoolEntry cpe = _cons.get(cw.getID());
+		ConnectionPoolEntry cpe = _cons.get(Integer.valueOf(cw.getID()));
 		if (cpe == null) {
 			log.warn("Invalid JDBC Connection returned - " + cw.getID());
 			return 0;

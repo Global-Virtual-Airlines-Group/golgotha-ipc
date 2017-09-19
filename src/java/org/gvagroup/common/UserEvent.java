@@ -1,10 +1,10 @@
-// Copyright 2008, 2015 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2008, 2015, 2017 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 /**
  * A cross-application event to track events linked to a specific User.
  * @author Luke
- * @version 1.95
+ * @version 2.21
  * @snce 1.2
  */
 
@@ -39,7 +39,7 @@ public class UserEvent extends SystemEvent {
 	public int compareTo(SystemEvent se2) {
 		if (se2 instanceof UserEvent) {
 			UserEvent ue2 = (UserEvent) se2;
-			int tmpResult = Integer.valueOf(_userID).compareTo(Integer.valueOf(ue2._userID));
+			int tmpResult = Integer.compare(_userID, ue2._userID);
 			if (tmpResult != 0)
 				return tmpResult;
 		}

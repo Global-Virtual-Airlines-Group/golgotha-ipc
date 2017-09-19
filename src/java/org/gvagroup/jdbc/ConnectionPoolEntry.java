@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 1.94
+ * @version 2.21
  * @since 1.0
  */
 
@@ -24,7 +24,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	
 	private transient ConnectionWrapper _c;
 	private StackTrace _stackInfo;
-	private final Integer _id;
+	private final int _id;
 
 	private transient final Properties _props = new Properties();
 	private transient String _validationQuery = "SELECT 1";
@@ -49,7 +49,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	ConnectionPoolEntry(int id, Properties props) {
 		super();
-		_id = Integer.valueOf(id);
+		_id = id;
 		if (props.containsKey("validationQuery")) {
 			_validationQuery = props.getProperty("validationQuery");
 			props.remove("validationQuery");
@@ -193,7 +193,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * @return the entry id
 	 */
 	public int getID() {
-		return _id.intValue();
+		return _id;
 	}
 
 	/**
@@ -320,12 +320,12 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	@Override
 	public int compareTo(ConnectionPoolEntry e2) {
-		return _id.compareTo(e2._id);
+		return Integer.compare(_id, e2._id);
 	}
 
 	@Override
 	public int hashCode() {
-		return _id.hashCode();
+		return _id;
 	}
 
 	/**
@@ -334,7 +334,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	@Override
 	public final String toString() {
-		StringBuilder buf = new StringBuilder("#").append(_id.toString());
+		StringBuilder buf = new StringBuilder("#").append(_id);
 		return buf.toString();
 	}
 }
