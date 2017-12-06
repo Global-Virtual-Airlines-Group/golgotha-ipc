@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 /**
  * A Tomcat lifecycle listener to shut down the MySQL abandoned connection listener thread.
  * @author Luke
- * @version 2.2
+ * @version 2.22
  * @since 2.2
  */
 
@@ -40,7 +40,7 @@ public class MySQLThreadUnloader extends AbstractLifecycleListener {
 			
 			// Wait for thread to die
 			Field f = c.getDeclaredField("threadRef"); 
-			boolean oldAccess = f.isAccessible(); f.setAccessible(true);
+			boolean oldAccess = f.canAccess(null); f.setAccessible(true);
 			Object o = f.get(null); f.setAccessible(oldAccess);
 			if (o != null) {
 				Thread t = (Thread) o; int totalTime = 0;

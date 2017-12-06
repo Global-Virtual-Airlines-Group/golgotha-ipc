@@ -26,7 +26,7 @@ public class TestReflection extends TestCase {
 		// Wait for thread to die (up to 500ms)
 		Field f = c.getDeclaredField("threadRef");
 		assertNotNull(f);
-		assertFalse(f.isAccessible());
+		assertFalse(f.canAccess(null));
 		f.setAccessible(true);
 		Thread t = (Thread) f.get(null);
 		assertNull(t);
