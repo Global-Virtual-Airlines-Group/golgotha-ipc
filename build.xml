@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2005, 2006, 2008, 2010, 2011, 2012, 2013, 2014, 2015, 2017, 2018 Global Virtual Airlines Group. All Rights Reserved. -->
 <project default="compile">
 	<!-- Compile shared classes -->
-	<target name="compile">
+	<target name="compile" description="Build shared library">
 		<property name="v.major" value="2" />
-		<property name="v.minor" value="22" />
+		<property name="v.minor" value="23" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
@@ -27,5 +28,9 @@
 
 		<!-- Compress the Java classes into a single JAR file -->
 		<jar basedir="${java.io.tmpdir}/build/ipc" compress="true" index="true" destfile="${basedir}/jar/golgotha_ipc-${v.major}.${v.minor}.jar" />
+	</target>
+	
+	<target name="clean" description="Clean compiled code">
+		<delete dir="${java.io.tmpdir}/build/ipc" />
 	</target>
 </project>
