@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2005, 2006, 2008, 2010, 2011, 2012, 2013, 2014, 2015, 2017, 2018 Global Virtual Airlines Group. All Rights Reserved. -->
+<!-- Copyright 2005, 2006, 2008, 2010, 2011, 2012, 2013, 2014, 2015, 2017, 2018, 2019 Global Virtual Airlines Group. All Rights Reserved. -->
 <project default="compile">
 	<!-- Compile shared classes -->
 	<target name="compile" description="Build shared library">
 		<property name="v.major" value="2" />
-		<property name="v.minor" value="23" />
+		<property name="v.minor" value="24" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
@@ -16,7 +16,7 @@
 		</delete>
 
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
-		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="1.9" target="1.9" compiler="modern">
+		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="12" target="12" compiler="modern">
 			<compilerarg value="-Xlint:unchecked,deprecation,path,finally" />
 	    	<classpath>
 				<pathelement path="${classpath}" />

@@ -1,4 +1,4 @@
-// Copyright 2007, 2010, 2011, 2013, 2016, 2017 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2010, 2011, 2013, 2016, 2017, 2019 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 import java.io.Serializable;
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 2.11
+ * @version 2.24
  * @since 1.0
  */
 
@@ -19,6 +19,7 @@ public class SharedData {
 	public static final String ACARS_POOL = "$acarsPool$data";
 	public static final String ACARS_DAEMON = "$acarsDaemon$data";
 	public static final String ACARS_CACHEINFO = "$acarsDaemon$cacheInfo";
+	public static final String ACARS_CMDSTATS = "$acarsDaemon$cmdStats";
 	
 	public static final String JDBC_POOL="$jdbc$pool";
 	public static final String FB_CREDS = "$fb$creds"; 
