@@ -16,7 +16,7 @@
 		</delete>
 
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
-		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="12" target="12" compiler="modern">
+		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="13" target="13" compiler="modern">
 			<compilerarg value="-Xlint:unchecked,deprecation,path,finally" />
 	    	<classpath>
 				<pathelement path="${classpath}" />
