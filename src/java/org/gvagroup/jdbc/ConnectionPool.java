@@ -355,14 +355,6 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		if ((initialSize < 0) || (initialSize > _poolMaxSize))
 			throw new IllegalArgumentException("Invalid pool size - " + initialSize);
 		
-		// Check for UNIX socket
-		if (_props.containsKey("socket")) {
-			log.warn("Using UNIX socket " + _props.getProperty("socket"));
-			_props.put("socketFactory", "org.newsclub.net.mysql.AFUNIXDatabaseSocketFactory");
-			_props.put("junixsocket.file", _props.getProperty("socket"));
-			_props.remove("socket");
-		}
-
 		// Create connections
 		try {
 			for (int x = 1; x <= initialSize; x++) {
