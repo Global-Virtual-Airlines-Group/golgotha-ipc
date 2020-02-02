@@ -1,4 +1,4 @@
-// Copyright 2007, 2009, 2011, 2013, 2014, 2016, 2017 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2009, 2011, 2013, 2014, 2016, 2017, 2020 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -10,7 +10,7 @@ import java.util.concurrent.Executor;
  * certain sensitive methods (such as {@link Connection#close()}) from being called by
  * command code. 
  * @author Luke
- * @version 2.21
+ * @version 2.25
  * @since 1.0
  */
 
@@ -347,7 +347,7 @@ public class ConnectionWrapper implements Connection, Comparable<ConnectionWrapp
 	@Override
 	public void setTransactionIsolation(int level) throws SQLException {
 		recordLastUse();
-		// nothing
+		_c.setTransactionIsolation(level);
 	}
 
 	@Override
