@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.22
+ * @version 2.26
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -279,15 +279,20 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		_lastPoolFullTime = now;
 		throw new ConnectionPoolFullException();
 	}
+	
+	public long release(Connection c) {
+		return release(c, false);
+	}
 
 	/**
 	 * Returns a JDBC connection to the connection pool. <i>Since the connection may have been returned back to the pool
 	 * in the middle of a failed transaction, all pending writes will be rolled back and the autoCommit property of the
 	 * JDBC connection reset.</i>
 	 * @param c the JDBC connection to return
+	 * @param isForced TRUE if a forced close by the connection monitor, otherwise FALSE
 	 * @return the number of milliseconds the connection was used for
 	 */
-	public long release(Connection c) {
+	long release(Connection c, boolean isForced) {
 		if (c == null)
 			return 0;
 
@@ -319,6 +324,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		// Free the connection and reset last use
 		cw.close();
 		long useTime = cpe.getUseTime();
+		if (isForced)
+			log.error("Forced connection close - JDBC Connection " + cpe);
 
 		// If this is a stale dynamic connection, such it down
 		if (cpe.isDynamic() && (useTime > MAX_USE_TIME)) {
@@ -329,7 +336,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 				log.debug("Released JDBC Connection " + cpe + " after " + useTime + "ms");
 
 			// Check if we need to restart
-			if ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests)) {
+			if (isForced || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
 				log.warn("Restarting JDBC Connection " + cpe + " after " + cpe.getSessionUseCount() + " (total " + cpe.getUseCount() + ") reservations");
 				cpe.close();
 				try {

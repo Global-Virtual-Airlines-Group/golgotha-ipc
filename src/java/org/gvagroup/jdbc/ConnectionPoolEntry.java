@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 2.21
+ * @version 2.26
  * @since 1.0
  */
 
@@ -132,13 +132,15 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * Returns the connection to the connection pool.
 	 */
 	void free() {
-		if (!inUse())
+		if (!inUse()) {
+			log.warn("Attempting to re-free Connection " + _id);
 			return;
+		}
 
 		// Reset auto-commit property
 		try {
 			if ((_c != null) && (_c.getAutoCommit() != _autoCommit)) {
-				log.info("Resetting autoCommit to " + String.valueOf(_autoCommit));
+				log.info("Resetting autoCommit to " + _autoCommit);
 				_c.setAutoCommit(_autoCommit);
 				_c.setTransactionIsolation(DEFAULT_SERIALIZATION);
 			}

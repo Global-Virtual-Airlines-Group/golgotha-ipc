@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 2.10
+ * @version 2.26
  * @since 1.0
  */
 
@@ -19,11 +19,11 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	private static final long serialVersionUID = -5370602877805586773L;
 	
 	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class);
-	private static final Collection<String> _sqlStatus = Arrays.asList("08003", "08S01");
+	private static final Collection<String> _sqlStatus = List.of("08003", "08S01");
 
 	private transient final ConnectionPool _pool;
 	private final String _name;
-	private long _sleepTime;
+	private final long _sleepTime;
 	
 	private long _poolCheckCount;
 	private long _lastPoolCheck;
@@ -102,7 +102,7 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 					log.debug("Skipping inactive connection " + cpe);
 			} else if (cpe.inUse() && isStale) {
 				log.error("Releasing stale Connection " + cpe, cpe.getStackInfo());
-				_pool.release(cpe.getWrapper());
+				_pool.release(cpe.getWrapper(), true);
 			} else if (cpe.isDynamic() && !cpe.inUse()) {
 				if (isStale)
 					log.error("Releasing stale dynamic Connection " + cpe, cpe.getStackInfo());
@@ -132,17 +132,11 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 		}
 	}
 
-	/**
-	 * Returns the thread name.
-	 */
 	@Override
 	public String toString() {
 		return _name + " JDBC Connection Monitor";
 	}
 
-	/**
-	 * Executes the Thread.
-	 */
 	@Override
 	public void run() {
 		log.info("Starting");
