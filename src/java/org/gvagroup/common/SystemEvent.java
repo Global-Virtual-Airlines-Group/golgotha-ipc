@@ -26,7 +26,6 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 	 * @param code the event code
 	 */
 	public SystemEvent(Type code) {
-		super();
 		_code = code;
 	}
 
