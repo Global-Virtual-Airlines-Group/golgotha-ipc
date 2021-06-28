@@ -1,8 +1,9 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
 import java.util.*;
+import java.io.File;
 import java.lang.reflect.*;
 
 import java.util.concurrent.*;
@@ -13,7 +14,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.26
+ * @version 2.30
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -141,6 +142,23 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		_props.setProperty("user", user);
 		_props.setProperty("password", pwd);
 	}
+	
+	/**
+	 * Sets a domain socket to connect to.
+	 * @param socketFile the path to the Unix domain socket
+	 */
+	public void setSocket(String socketFile) {
+		if (socketFile == null) return;
+		File f = new File(socketFile);
+		if (f.exists() && _isMySQL) {
+			log.info("Using Unix socket at " + f.getAbsolutePath());
+			_props.put("socketFactory", "org.newsclub.net.mysql.AFUNIXDatabaseSocketFactoryCJ");
+			_props.put("junixsocket.file", f.getAbsolutePath());
+		} else {
+			_props.remove("socketFactory");
+			_props.remove("junixsocket.file");
+		}
+	}
 
 	/**
 	 * Sets the maximum number of reservations of a JDBC Connection. After the maximum number of reservations have been
@@ -184,7 +202,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 */
 	public void setDriver(String driverClassName) throws ClassNotFoundException {
 		Class<?> c = Class.forName(driverClassName);
-		_isMySQL = driverClassName.startsWith("com.mysql.jdbc");
+		_isMySQL = driverClassName.startsWith("com.mysql.jdbc.") || driverClassName.startsWith("com.mysql.cj.");
 		if (_isMySQL)
 			log.info("MySQL JDBC Driver detected");
 		
@@ -203,7 +221,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 * @throws SQLException if a JDBC error occurs connecting to the data source.
 	 */
 	protected ConnectionPoolEntry createConnection(int id) throws SQLException {
-		log.info("Connecting to " + _props.getProperty("url") + " as user " + _props.getProperty("user") + " ID #" + id);
+		String url = _props.getProperty("junixsocket.file", _props.getProperty("url"));
+		log.info("Connecting to " + url + " as user " + _props.getProperty("user") + " ID #" + id);
 		ConnectionPoolEntry entry = new ConnectionPoolEntry(id, _props);
 		entry.setAutoCommit(_autoCommit);
 		entry.connect();
