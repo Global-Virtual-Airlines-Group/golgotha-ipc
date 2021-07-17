@@ -14,7 +14,7 @@ import org.apache.log4j.Logger;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.30
+ * @version 2.31
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -29,7 +29,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	/**
 	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways.
 	 */
-	static final int MAX_USE_TIME = 125_000;
+	static final int MAX_USE_TIME = 145_000;
 
 	private int _poolMaxSize = 1;
 	private int _maxRequests;
@@ -151,7 +151,6 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		if (socketFile == null) return;
 		File f = new File(socketFile);
 		if (f.exists() && _isMySQL) {
-			log.info("Using Unix socket at " + f.getAbsolutePath());
 			_props.put("socketFactory", "org.newsclub.net.mysql.AFUNIXDatabaseSocketFactoryCJ");
 			_props.put("junixsocket.file", f.getAbsolutePath());
 		} else {
@@ -202,7 +201,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 */
 	public void setDriver(String driverClassName) throws ClassNotFoundException {
 		Class<?> c = Class.forName(driverClassName);
-		_isMySQL = driverClassName.startsWith("com.mysql.jdbc.") || driverClassName.startsWith("com.mysql.cj.");
+		_isMySQL = driverClassName.startsWith("com.mysql.cj.jdbc.");
 		if (_isMySQL)
 			log.info("MySQL JDBC Driver detected");
 		
@@ -419,9 +418,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		
 		// MySQL thread shutdown
 		if (_isMySQL) {
-			log.debug("Shutting down MySQL abandoned connection thread via checkedShutdown()");
+			log.info("Shutting down MySQL abandoned connection thread via checkedShutdown()");
 			try {
-				Class<?> c = Class.forName("com.mysql.jdbc.AbandonedConnectionCleanupThread");
+				Class<?> c = Class.forName("com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
 				Method m = c.getMethod("checkedShutdown", new Class<?>[] {});
 				m.invoke(null, new Object[] {});
 				
