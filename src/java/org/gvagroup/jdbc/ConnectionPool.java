@@ -436,7 +436,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 					}
 				}
 			} catch (ClassNotFoundException cnfe) {
-				log.warn("Cannot load class com.mysql.jdbc.AbandonedConnectionCleanupThread");
+				log.warn("Cannot load class com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
 			} catch (Exception e) {
 				log.error(e.getClass().getSimpleName() + " shutting down thread - " + e.getMessage());
 			}

@@ -1,4 +1,4 @@
-// Copyright 2017 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2017, 2021 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.tomcat;
 
 import java.lang.reflect.*;
@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 /**
  * A Tomcat lifecycle listener to shut down the MySQL abandoned connection listener thread.
  * @author Luke
- * @version 2.22
+ * @version 2.32
  * @since 2.2
  */
 
@@ -33,7 +33,7 @@ public class MySQLThreadUnloader extends AbstractLifecycleListener {
 		
 		log.info("Shutting down MySQL abandoned connection thread");
 		try {
-			Class<?> c = Class.forName("com.mysql.jdbc.AbandonedConnectionCleanupThread");
+			Class<?> c = Class.forName("com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
 			Method m = c.getMethod("checkedShutdown", new Class<?>[] {});
 			m.invoke(null, new Object[] {});
 			log.info("checkedShutdown()");
@@ -64,7 +64,7 @@ public class MySQLThreadUnloader extends AbstractLifecycleListener {
 				}
 			}
 		} catch (ClassNotFoundException cnfe) {
-			log.warn("Cannot load class com.mysql.jdbc.AbandonedConnectionCleanupThread");
+			log.warn("Cannot load class com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
 		} catch (Exception e) {
 			log.error(e.getClass().getSimpleName() + " shutting down thread - " + e.getMessage());
 		}
