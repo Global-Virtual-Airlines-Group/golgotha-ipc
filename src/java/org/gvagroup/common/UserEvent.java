@@ -1,10 +1,10 @@
-// Copyright 2008, 2015, 2017 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2008, 2015, 2017, 2021 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
 /**
  * A cross-application event to track events linked to a specific User.
  * @author Luke
- * @version 2.21
+ * @version 2.33
  * @snce 1.2
  */
 
@@ -16,10 +16,10 @@ public class UserEvent extends SystemEvent {
 
 	/**
 	 * Creates the Event.
-	 * @param code the Event code
+	 * @param code the EventType
 	 * @param userID the user's database ID
 	 */
-	public UserEvent(Type code, int userID) {
+	public UserEvent(EventType code, int userID) {
 		super(code);
 		_userID = Math.max(0, userID);
 	}

@@ -4,7 +4,7 @@ package org.gvagroup.common;
 /**
  * A class to hold cross-application event data.
  * @author Luke
- * @version 2.11
+ * @version 2.33
  * @since 1.0
  */
 
@@ -12,20 +12,13 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 	
 	private static final long serialVersionUID = -4971005909500879396L;
 
-	/**
-	 * Event type.
-	 */
-	public enum Type {
-		AIRPORT_RELOAD, AIRLINE_RELOAD, USER_SUSPEND, USER_INVALIDATE, MVS_RELOAD, TZ_RELOAD, CACHE_FLUSH, CACHE_STATS;
-	}
-	
-	private final Type _code;
+	private final EventType _code;
 
 	/**
 	 * Creates a System Event.
 	 * @param code the event code
 	 */
-	public SystemEvent(Type code) {
+	public SystemEvent(EventType code) {
 		_code = code;
 	}
 
@@ -33,7 +26,7 @@ public class SystemEvent implements java.io.Serializable, Comparable<SystemEvent
 	 * Returns the event code.
 	 * @return the code
 	 */
-	public Type getCode() {
+	public EventType getCode() {
 		return _code;
 	}
 	
