@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2005, 2006, 2008, 2010, 2011, 2012, 2013, 2014, 2015, 2017, 2018, 2019, 2020, 2021 Global Virtual Airlines Group. All Rights Reserved. -->
+<!-- Copyright 2005, 2006, 2008, 2010, 2011, 2012, 2013, 2014, 2015, 2017, 2018, 2019, 2020, 2021, 2022 Global Virtual Airlines Group. All Rights Reserved. -->
 <project default="compile">
 	<!-- Compile shared classes -->
 	<target name="compile" description="Build shared library">
@@ -16,7 +16,7 @@
 		</delete>
 
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
-		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="16" target="16" compiler="modern">
+		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="18" target="18" compiler="modern">
 			<compilerarg value="-Xlint:unchecked,deprecation,path,finally" />
 	    	<classpath>
 				<pathelement path="${classpath}" />
