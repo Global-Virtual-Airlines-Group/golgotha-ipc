@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 2.26
+ * @version 2.4
  * @since 1.0
  */
 
@@ -184,7 +184,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * Returns the connection wrapper behind this ConnectionPoolEntry. This is package protected since it should only be
 	 * accessed by the conection monitor.
 	 * @return the ConnectionWrapper
-	 * @see ConnectionMonitor#checkPool()
+	 * @see ConnectionMonitor#execute()
 	 */
 	ConnectionWrapper getWrapper() {
 		return _c;

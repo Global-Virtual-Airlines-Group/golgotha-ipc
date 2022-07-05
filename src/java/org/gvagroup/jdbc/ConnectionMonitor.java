@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020, 2022 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
@@ -7,14 +7,16 @@ import java.time.Instant;
 
 import org.apache.log4j.Logger;
 
+import org.gvagroup.tomcat.SharedTask;
+
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 2.26
+ * @version 2.40
  * @since 1.0
  */
 
-class ConnectionMonitor implements java.io.Serializable, Runnable {
+class ConnectionMonitor implements SharedTask {
 
 	private static final long serialVersionUID = -5370602877805586773L;
 	
@@ -23,10 +25,11 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 
 	private transient final ConnectionPool _pool;
 	private final String _name;
-	private final long _sleepTime;
+	private final int _sleepTime;
 	
 	private long _poolCheckCount;
 	private long _lastPoolCheck;
+	private boolean _isStopped = false;
 
 	/**
 	 * Creates a new Connection Monitor.
@@ -39,6 +42,16 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 		_name = name;
 		_pool = pool;
 		_sleepTime = Math.min(3600, Math.max(10, interval)) * 1000; // Convert seconds into ms
+	}
+	
+	@Override
+	public void stop() {
+		_isStopped = true;
+	}
+	
+	@Override
+	public boolean isStopped() {
+		return _isStopped;
 	}
 
 	/**
@@ -64,18 +77,14 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	public java.time.Instant getLastCheck() {
 		return (_lastPoolCheck == 0) ? null : Instant.ofEpochMilli(_lastPoolCheck);
 	}
-
-	/**
-	 * Alerts the thread to immediately check the connection pool. 
-	 */
-	synchronized void execute() {
-		notify();
+	
+	@Override
+	public int getInterval() {
+		return _sleepTime;
 	}
 
-	/**
-	 * Manually check the connection pool.
-	 */
-	protected synchronized void checkPool() {
+	@Override
+	public synchronized void execute() {
 		_poolCheckCount++;
 		_lastPoolCheck = System.currentTimeMillis();
 		if (log.isDebugEnabled())
@@ -135,22 +144,5 @@ class ConnectionMonitor implements java.io.Serializable, Runnable {
 	@Override
 	public String toString() {
 		return _name + " JDBC Connection Monitor";
-	}
-
-	@Override
-	public void run() {
-		log.info("Starting");
-		while (!Thread.currentThread().isInterrupted()) {
-			checkPool();
-			synchronized (this) {
-				try {
-					wait(_sleepTime);
-				} catch (InterruptedException ie) {
-					Thread.currentThread().interrupt();
-				}
-			}
-		}
-
-		log.info("Stopping");
 	}
 }

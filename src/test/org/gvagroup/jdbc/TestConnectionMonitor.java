@@ -42,18 +42,4 @@ public class TestConnectionMonitor extends TestCase {
         pool2.add(new Object());
         pool2.add(new Object());
     }
-    
-    public void testThreadExecution() throws Exception {
-    	Thread t = new Thread(_cm);
-    	t.setDaemon(true);
-        assertEquals(0, _cm.size());
-        assertFalse(t.isAlive());
-        assertTrue(t.isDaemon());
-        
-        t.start();
-        assertTrue(t.isAlive());
-        
-        t.interrupt();
-        t.join(2000);
-    }
 }

@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -10,17 +10,18 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import org.apache.log4j.Logger;
+import org.gvagroup.tomcat.SharedWorker;
 
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.31
+ * @version 2.40
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
  */
 
-public class ConnectionPool implements java.io.Serializable, java.io.Closeable, Thread.UncaughtExceptionHandler {
+public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 
 	private static final long serialVersionUID = 5092908907485396942L;
 
@@ -44,7 +45,6 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	private final ConnectionMonitor _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry> _cons = new TreeMap<Integer, ConnectionPoolEntry>();
 	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>();
-	private transient Thread _monitorThread;
 
 	private transient final Properties _props = new Properties();
 	private boolean _autoCommit = true;
@@ -53,7 +53,6 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 * Connection Pool full exception.
 	 */
 	public static class ConnectionPoolFullException extends ConnectionPoolException {
-
 		private static final long serialVersionUID = -1618858703712722475L;
 
 		ConnectionPoolFullException() {
@@ -71,17 +70,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		DriverManager.setLoginTimeout(2);
 		_poolMaxSize = maxSize;
 		_monitor = new ConnectionMonitor(name, 30, this);
-	}
-
-	/*
-	 * Start the Connection Monitor thread.
-	 */
-	private void startMonitor(int priority) {
-		_monitorThread = new Thread(_monitor, _monitor.toString());
-		_monitorThread.setPriority(Math.max(Thread.MIN_PRIORITY, priority));
-		_monitorThread.setDaemon(true);
-		_monitorThread.setUncaughtExceptionHandler(this);
-		_monitorThread.start();
+		SharedWorker.register(_monitor);
 	}
 
 	/**
@@ -390,28 +379,16 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 		} catch (SQLException se) {
 			throw new ConnectionPoolException(se);
 		}
-
-		startMonitor(Thread.currentThread().getPriority());
 	}
 
-	/**
-	 * Disconnects the Connection pool from the JDBC data source.
-	 */
 	@Override
 	public void close() {
-		try {
-			_monitorThread.interrupt();
-			_monitorThread.join(500);
-		} catch (InterruptedException ie) {
-			// empty
-		}
+		_monitor.stop();
 
 		// Disconnect the connections
 		for (Iterator<ConnectionPoolEntry> i = _cons.values().iterator(); i.hasNext();) {
 			ConnectionPoolEntry cpe = i.next();
-			if (cpe.inUse())
-				log.warn("Forcibly closing JDBC Connection " + cpe);
-
+			if (cpe.inUse()) log.warn("Forcibly closing JDBC Connection " + cpe);
 			cpe.close();
 			i.remove();
 		}
@@ -505,16 +482,5 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable, 
 	 */
 	public long getWaitCount() {
 		return _waitCount.longValue();
-	}
-
-	/**
-	 * Connection Monitor uncaught exception handler.
-	 */
-	@Override
-	public void uncaughtException(Thread t, Throwable e) {
-		if (t == _monitorThread) {
-			log.error(e.getMessage(), e);
-			startMonitor(t.getPriority());
-		}
 	}
 }
