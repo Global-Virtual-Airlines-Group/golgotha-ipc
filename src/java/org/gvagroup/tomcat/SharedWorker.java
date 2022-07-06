@@ -66,6 +66,20 @@ public class SharedWorker implements Runnable {
 		_tasks.add(new QueueEntry(t));
 	}
 	
+	/**
+	 * Removes all tasks from a given classloader from the queue.
+	 * @param cl the ClassLoader
+	 */
+	public static void clear(ClassLoader cl) {
+		for (Iterator<QueueEntry> i = _tasks.iterator(); i.hasNext(); ) {
+			SharedTask t = i.next().getTask();
+			if (t.isStopped() || (t.getClass().getClassLoader() == cl)) {
+				log.info(String.format("Removed task %s", t));
+				i.remove();
+			}
+		}
+	}
+	
 	/*
 	 * Helper method to execute the task if applicable.
 	 */
@@ -97,7 +111,7 @@ public class SharedWorker implements Runnable {
 		while (!Thread.currentThread().isInterrupted()) {
 			QueueEntry qe = null;
 			try {
-				qe = _tasks.poll(15, TimeUnit.SECONDS);
+				qe = _tasks.poll(20, TimeUnit.SECONDS);
 				if (qe != null)
 					executeTask(qe);
 			} catch (InterruptedException ie) {
