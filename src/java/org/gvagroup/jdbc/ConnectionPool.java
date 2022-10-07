@@ -15,7 +15,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.41
+ * @version 2.42
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -41,6 +41,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	private boolean _logStack;
 	private transient boolean _isMySQL;
 	private long _lastPoolFullTime;
+	
+	private long _maxWaitTime;
+	private long _maxBorrowTime;
 
 	private final ConnectionMonitor _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry> _cons = new TreeMap<Integer, ConnectionPoolEntry>();
@@ -73,7 +76,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		SharedWorker.register(_monitor);
 	}
 
-	/**
+	/*
 	 * Get first available connection ID.
 	 */
 	private int getNextID() {
@@ -259,6 +262,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		}
 
 		// Wait for a new connection to become available
+		long waitTime = System.nanoTime();
 		try {
 			cpe = _idleCons.poll(950, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
@@ -267,8 +271,11 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 			}
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
+		} finally {
+			waitTime = System.nanoTime() - waitTime;
 		}
 
+		_maxWaitTime = Math.max(_maxWaitTime, TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS));
 		_fullCount.increment();
 		
 		// Dump stack if this is our first error in a while
@@ -287,6 +294,11 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		throw new ConnectionPoolFullException();
 	}
 	
+	/**
+	 * Returns a connection to the pool.
+	 * @param c the Connection
+	 * @return the number of milliseconds the connection was used for
+	 */
 	public long release(Connection c) {
 		return release(c, false);
 	}
@@ -330,6 +342,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		// Free the connection and reset last use
 		cw.close();
 		long useTime = cpe.getUseTime();
+		_maxBorrowTime = Math.max(_maxBorrowTime, useTime);
 		if (isForced)
 			log.error(String.format("Forced connection close - JDBC Connection %s", cpe));
 
@@ -369,6 +382,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 			throw new IllegalArgumentException(String.format("Invalid pool size - %d" + Integer.valueOf(initialSize)));
 		
 		// Create connections
+		resetMaxTimes();
 		try {
 			for (int x = 1; x <= initialSize; x++) {
 				ConnectionPoolEntry cpe = createConnection(x);
@@ -481,5 +495,21 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	 */
 	public long getWaitCount() {
 		return _waitCount.longValue();
+	}
+	
+	public long getMaxWaitTime() {
+		return _maxWaitTime;
+	}
+	
+	public long getMaxBorrowTime() {
+		return _maxBorrowTime;
+	}
+	
+	/**
+	 * Resets the maximum borrow and wait times.
+	 */
+	public void resetMaxTimes() {
+		_maxWaitTime = 0;
+		_maxBorrowTime = 0;
 	}
 }
