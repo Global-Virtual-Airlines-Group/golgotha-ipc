@@ -21,7 +21,7 @@ public class TestSharedWorker extends TestCase implements Thread.UncaughtExcepti
 		}
 		
 		// Start the worker thread
-		_wt = new Thread(new SharedWorker(), "SharedWorker");
+		_wt = Thread.ofVirtual().unstarted(new SharedWorker());
 		_wt.setUncaughtExceptionHandler(this);
 		_wt.setDaemon(true);
 		_wt.start();

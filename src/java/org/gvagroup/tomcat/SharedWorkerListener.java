@@ -1,4 +1,4 @@
-// Copyright 2022 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.tomcat;
 
 import org.apache.log4j.Logger;
@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 /**
  * A Tomcat context listener to manage the Shared Worker thread.
  * @author Luke
- * @version 2.40
+ * @version 2.50
  * @since 2.40
  */
 
@@ -20,7 +20,7 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 		if (isAfter) return;
 		log = Logger.getLogger(SharedWorker.class);
 		
-		_wt = new Thread(new SharedWorker(), "SharedWorker");
+		_wt = Thread.ofVirtual().unstarted(new SharedWorker());
 		_wt.setUncaughtExceptionHandler(this);
 		_wt.setDaemon(true);
 		_wt.start();
