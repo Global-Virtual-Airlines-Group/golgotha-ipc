@@ -6,7 +6,7 @@ import org.apache.log4j.Logger;
 /**
  * A Tomcat context listener to manage the Shared Worker thread.
  * @author Luke
- * @version 2.50
+ * @version 2.51
  * @since 2.40
  */
 
@@ -15,6 +15,7 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 	private Logger log;
 	private Thread _wt;
 
+	@SuppressWarnings("preview")
 	@Override
 	void onStartup(boolean isAfter) {
 		if (isAfter) return;

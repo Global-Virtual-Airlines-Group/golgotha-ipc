@@ -4,7 +4,7 @@
 	<!-- Compile shared classes -->
 	<target name="compile" description="Build shared library">
 		<property name="v.major" value="2" />
-		<property name="v.minor" value="50" />
+		<property name="v.minor" value="51" />
 		
 		<!-- Clean out old libraries -->
 		<mkdir dir="${java.io.tmpdir}/build" />
@@ -16,7 +16,7 @@
 		</delete>
 
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
-		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="19" target="19" compiler="modern">
+		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" includeantruntime="false" debuglevel="lines,vars,source" source="20" target="20" compiler="modern">
 			<compilerarg value="-Xlint:unchecked,deprecation,path,finally" />
 			<compilerarg value="--enable-preview" />
 	    	<classpath>

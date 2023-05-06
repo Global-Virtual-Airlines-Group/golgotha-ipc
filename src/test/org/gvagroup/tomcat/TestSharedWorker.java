@@ -11,6 +11,7 @@ public class TestSharedWorker extends TestCase implements Thread.UncaughtExcepti
 	
 	private Thread _wt;
 
+	@SuppressWarnings("preview")
 	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
