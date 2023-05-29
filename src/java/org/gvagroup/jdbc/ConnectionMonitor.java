@@ -1,18 +1,18 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020, 2022 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020, 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
 import java.sql.*;
 import java.time.Instant;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 import org.gvagroup.tomcat.SharedTask;
 
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 2.40
+ * @version 2.60
  * @since 1.0
  */
 
@@ -20,7 +20,7 @@ class ConnectionMonitor implements SharedTask {
 
 	private static final long serialVersionUID = -5370602877805586773L;
 	
-	private static transient final Logger log = Logger.getLogger(ConnectionMonitor.class);
+	private static transient final Logger log = LogManager.getLogger(ConnectionMonitor.class);
 	private static final Collection<String> _sqlStatus = List.of("08003", "08S01");
 
 	private transient final ConnectionPool _pool;

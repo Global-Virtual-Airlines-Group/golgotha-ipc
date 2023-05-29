@@ -1,24 +1,21 @@
-// Copyright 2017, 2021 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2017, 2021, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.tomcat;
 
 import java.lang.reflect.*;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 /**
  * A Tomcat lifecycle listener to shut down the MySQL abandoned connection listener thread.
  * @author Luke
- * @version 2.32
+ * @version 2.60
  * @since 2.2
  */
 
 public class MySQLThreadUnloader extends AbstractLifecycleListener {
 
-	private static final Logger log = Logger.getLogger(MySQLThreadUnloader.class);
+	private static final Logger log = LogManager.getLogger(MySQLThreadUnloader.class);
 
-	/**
-	 * Startup handler.
-	 */
 	@Override
 	void onStartup(boolean isAfter) {
 		// empty

@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -9,13 +9,14 @@ import java.lang.reflect.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
+
 import org.gvagroup.tomcat.SharedWorker;
 
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.42
+ * @version 2.60
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -25,7 +26,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 
 	private static final long serialVersionUID = 5092908907485396942L;
 
-	private static transient final Logger log = Logger.getLogger(ConnectionPool.class);
+	private static transient final Logger log = LogManager.getLogger(ConnectionPool.class);
 
 	/**
 	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways.

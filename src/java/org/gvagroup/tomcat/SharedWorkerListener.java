@@ -1,27 +1,28 @@
 // Copyright 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.tomcat;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 /**
  * A Tomcat context listener to manage the Shared Worker thread.
  * @author Luke
- * @version 2.51
+ * @version 2.60
  * @since 2.40
  */
 
 public class SharedWorkerListener extends AbstractLifecycleListener implements Thread.UncaughtExceptionHandler {
 	
+	private static final String THREAD_NAME = "Golgotha Shared Worker";
+	
 	private Logger log;
 	private Thread _wt;
 
-	@SuppressWarnings("preview")
 	@Override
 	void onStartup(boolean isAfter) {
 		if (isAfter) return;
-		log = Logger.getLogger(SharedWorker.class);
+		log = LogManager.getLogger(SharedWorker.class);
 		
-		_wt = Thread.ofVirtual().unstarted(new SharedWorker());
+		_wt = Thread.ofVirtual().name(THREAD_NAME).unstarted(new SharedWorker());
 		_wt.setUncaughtExceptionHandler(this);
 		_wt.setDaemon(true);
 		_wt.start();
@@ -45,7 +46,7 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 			return;
 		}
 		
-		_wt = new Thread(new SharedWorker(), "SharedWorker");
+		_wt = Thread.ofVirtual().name(THREAD_NAME).unstarted(new SharedWorker());
 		_wt.setUncaughtExceptionHandler(this);
 		_wt.setDaemon(true);
 		_wt.start();

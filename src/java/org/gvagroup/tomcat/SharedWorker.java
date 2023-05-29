@@ -1,21 +1,21 @@
-// Copyright 2022 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.tomcat;
 
 import java.util.*;
 import java.util.concurrent.*;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 /**
  * A shared worker thread to schedule low-intensity, regular jobs.
  * @author Luke
- * @version 2.40
+ * @version 2.60
  * @since 2.40
  */
 
 public class SharedWorker implements Runnable {
 	
-	private static final Logger log = Logger.getLogger(SharedWorker.class);
+	private static final Logger log = LogManager.getLogger(SharedWorker.class);
 	
 	private static final BlockingQueue<QueueEntry> _tasks = new DelayQueue<QueueEntry>();
 	private static final Random _rnd = new Random();

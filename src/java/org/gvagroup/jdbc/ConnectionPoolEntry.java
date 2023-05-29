@@ -1,15 +1,15 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
 import java.util.*;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.*;
 
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 2.4
+ * @version 2.60
  * @since 1.0
  */
 
@@ -17,7 +17,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 
 	private static final long serialVersionUID = -6121720901088473809L;
 
-	private static transient final Logger log = Logger.getLogger(ConnectionPoolEntry.class);
+	private static transient final Logger log = LogManager.getLogger(ConnectionPoolEntry.class);
 	
 	// Default connection serialization
 	private static final int DEFAULT_SERIALIZATION = Connection.TRANSACTION_READ_COMMITTED;

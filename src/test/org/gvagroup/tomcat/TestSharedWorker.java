@@ -1,26 +1,22 @@
 package org.gvagroup.tomcat;
 
-import java.io.*;
-
-import org.apache.log4j.*;
+import java.io.File;
 
 import junit.framework.TestCase;
 
-@SuppressWarnings("static-method")
 public class TestSharedWorker extends TestCase implements Thread.UncaughtExceptionHandler {
 	
 	private Thread _wt;
 
-	@SuppressWarnings("preview")
 	@Override
 	protected void setUp() throws Exception {
 		super.setUp();
-
-		// Init Log4J
-		try (InputStream is = new FileInputStream("data/log4j.test.properties")) {
-			PropertyConfigurator.configure(is);
-		}
 		
+		// Setup log4j
+		File f = new File("data/log4j2-test.xml");
+		assertTrue(f.exists());
+		System.setProperty("log4j2.configurationFile", f.getAbsolutePath());
+
 		// Start the worker thread
 		_wt = Thread.ofVirtual().unstarted(new SharedWorker());
 		_wt.setUncaughtExceptionHandler(this);
@@ -34,7 +30,6 @@ public class TestSharedWorker extends TestCase implements Thread.UncaughtExcepti
 		_wt.interrupt();
 		_wt.join(1250);
 		assertFalse(_wt.isAlive());
-		LogManager.shutdown();
 		super.tearDown();
 	}
 
@@ -59,6 +54,8 @@ public class TestSharedWorker extends TestCase implements Thread.UncaughtExcepti
 		
 		dt.stop();
 		assertTrue(dt.isStopped());
+		
+		SharedWorker.clear(this.getClass().getClassLoader());
 	}
 	
 	public void testStop() throws Exception {
@@ -77,6 +74,8 @@ public class TestSharedWorker extends TestCase implements Thread.UncaughtExcepti
 		Thread.sleep(dt.getInterval());
 		
 		assertEquals(1, dt.getExecCount());
+		
+		SharedWorker.clear(this.getClass().getClassLoader());
 	}
 	
 	public void testExecWarning() throws Exception {
@@ -95,5 +94,7 @@ public class TestSharedWorker extends TestCase implements Thread.UncaughtExcepti
 
 		dt.stop();
 		assertTrue(dt.isStopped());
+		
+		SharedWorker.clear(this.getClass().getClassLoader());
 	}
 }
