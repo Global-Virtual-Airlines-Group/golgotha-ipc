@@ -1,10 +1,10 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2010, 2016, 2017 Global Virtual Airline Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2010, 2016, 2017, 2023 Global Virtual Airline Group. All Rights Reserved.
 package org.gvagroup.ipc;
 
 /**
  * A bean to return worker thread information.
  * @author Luke
- * @version 2.21
+ * @version 2.61
  * @since 1.4
  */
 
@@ -21,7 +21,7 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 	private boolean _isRunning;
 	
 	/**
-	 * Initializes the bean
+	 * Initializes the bean.
 	 * @param name the worker name
 	 * @param sortOrder the sorting order
 	 */
@@ -70,9 +70,7 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 	}
 	
 	public synchronized long getExecutionTime() {
-		if (_execStartTime == 0)
-			return 0;
-		
+		if (_execStartTime == 0) return 0;
 		return ((_execStopTime == 0) ? System.currentTimeMillis() : _execStopTime) - _execStartTime;
 	}
 	
@@ -84,9 +82,6 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 		return _sortOrder;
 	}
 	
-	/**
-	 * Compares two workers by comparing their sort ordering and names.
-	 */
 	@Override
 	public int compareTo(WorkerStatus ws2) {
 		int tmpResult = Integer.compare(_sortOrder, ws2._sortOrder);
@@ -95,7 +90,7 @@ public class WorkerStatus implements Comparable<WorkerStatus> {
 	
 	@Override
 	public boolean equals(Object o) {
-		return (o instanceof WorkerStatus) && (compareTo((WorkerStatus) o) == 0);
+		return (o instanceof WorkerStatus ws2) && (compareTo(ws2) == 0);
 	}
 	
 	@Override

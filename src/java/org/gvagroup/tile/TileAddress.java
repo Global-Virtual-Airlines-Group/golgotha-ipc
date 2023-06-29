@@ -1,4 +1,4 @@
-// Copyright 2006, 2007, 2012, 2016, 2017 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2006, 2007, 2012, 2016, 2017, 2021 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.tile;
 
 import java.util.*;
@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * A class to store quadtree Tile addresses.
  * @author Luke
- * @version 2.21
+ * @version 2.61
  * @since 2.1
  */
 
@@ -171,7 +171,7 @@ public class TileAddress implements  java.io.Serializable, Comparable<TileAddres
 	
 	@Override
 	public boolean equals(Object o) {
-		return (o instanceof TileAddress) ? (compareTo((TileAddress) o) == 0) : false;
+		return (o instanceof TileAddress ta2) && (compareTo(ta2) == 0);
 	}
 
 	@Override

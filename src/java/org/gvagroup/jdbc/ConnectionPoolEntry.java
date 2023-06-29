@@ -9,7 +9,7 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 2.60
+ * @version 2.61
  * @since 1.0
  */
 
@@ -314,7 +314,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	@Override
 	public boolean equals(Object o2) {
-		return (o2 instanceof ConnectionPoolEntry) ? (compareTo((ConnectionPoolEntry) o2) == 0) : false;
+		return (o2 instanceof ConnectionPoolEntry cpe2) && (compareTo(cpe2) == 0); 
 	}
 
 	/**
@@ -330,10 +330,6 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 		return _id;
 	}
 
-	/**
-	 * Returns a text representation of the Connection ID.
-	 * @return the connection ID
-	 */
 	@Override
 	public final String toString() {
 		StringBuilder buf = new StringBuilder("#").append(_id);
