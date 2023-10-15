@@ -74,7 +74,7 @@ public class SharedWorker implements Runnable {
 		for (Iterator<QueueEntry> i = _tasks.iterator(); i.hasNext(); ) {
 			SharedTask t = i.next().getTask();
 			if (t.isStopped() || (t.getClass().getClassLoader() == cl)) {
-				log.info(String.format("Removed task %s", t));
+				log.info("Removed task {}", t);
 				i.remove();
 			}
 		}
@@ -86,22 +86,22 @@ public class SharedWorker implements Runnable {
 	private static void executeTask(QueueEntry e) {
 		final SharedTask t = e.getTask();
 		if (t.isStopped()) {
-			log.warn(String.format("%s stopped", t));
+			log.warn("{} stopped", t);
 			return;
 		}
 		
-		if (log.isDebugEnabled()) log.debug(String.format("Executing %s - #%d", t, Integer.valueOf(e.getExecutionCount())));
+		log.debug("Executing {} - #{}", t, Integer.valueOf(e.getExecutionCount()));
 		long tt = System.currentTimeMillis();
 		try {
 			t.execute();
 			e.reset();
 			_tasks.add(e);
 		} catch (Exception ex) {
-			log.error(String.format("%s executing %s", ex.getMessage(), t), ex);
+			log.atError().withThrowable(ex).log("{} executing {}", ex.getMessage(), t);
 		} finally {
 			long execTime = System.currentTimeMillis() - tt;
 			if (execTime > 2500)
-				log.warn(String.format("Execess execution time for %s - %d", t, Long.valueOf(execTime)));
+				log.warn("Execess execution time for {} - {}ms", t, Long.valueOf(execTime));
 		}
 	}
 	

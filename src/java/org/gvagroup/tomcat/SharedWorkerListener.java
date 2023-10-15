@@ -6,7 +6,7 @@ import org.apache.logging.log4j.*;
 /**
  * A Tomcat context listener to manage the Shared Worker thread.
  * @author Luke
- * @version 2.60
+ * @version 2.63
  * @since 2.40
  */
 
@@ -42,7 +42,7 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 	@Override
 	public void uncaughtException(Thread t, Throwable e) {
 		if (t != _wt) {
-			log.error(String.format("Unknown thread - %s", t.getName()), e);
+			log.atError().withThrowable(e).log("Unknown thread - {}", t.getName());
 			return;
 		}
 		
@@ -50,6 +50,6 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 		_wt.setUncaughtExceptionHandler(this);
 		_wt.setDaemon(true);
 		_wt.start();
-		log.error(String.format("Restarted %s", t.getName()), e);
+		log.atError().withThrowable(e).log("Restarted {}", t.getName());
 	}
 }

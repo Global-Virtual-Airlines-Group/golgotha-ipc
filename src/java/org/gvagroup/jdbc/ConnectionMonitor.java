@@ -12,7 +12,7 @@ import org.gvagroup.tomcat.SharedTask;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 2.60
+ * @version 2.63
  * @since 1.0
  */
 
@@ -97,7 +97,7 @@ class ConnectionMonitor implements SharedTask {
 				long useTime = cpe.getUseTime();
 				long lastActiveInterval = _lastPoolCheck - cpe.getWrapper().getLastUse();
 				if ((useTime - lastActiveInterval) > 1500)
-					log.warn("Connection reserved for " + cpe.getUseTime() + "ms, last activity " + lastActiveInterval + "ms ago");
+					log.warn("Connection reserved for {}ms, last activity {}ms ago", Long.valueOf(cpe.getUseTime()), Long.valueOf(lastActiveInterval));
 				
 				isStale = (lastActiveInterval > 10_000);
 			}
@@ -105,25 +105,25 @@ class ConnectionMonitor implements SharedTask {
 			// Check if the entry has timed out
 			if (!cpe.isActive()) {
 				if (cpe.inUse()) {
-					log.warn("Inactive connection " + cpe + " in use!");
+					log.warn("Inactive connection {} in use", cpe);
 					cpe.close(); // Resets last use
-				} else if (log.isDebugEnabled())
-					log.debug("Skipping inactive connection " + cpe);
+				} else
+					log.debug("Skipping inactive connection {}", cpe);
 			} else if (cpe.inUse() && isStale) {
-				log.error("Releasing stale Connection " + cpe, cpe.getStackInfo());
+				log.atError().withThrowable(cpe.getStackInfo()).log("Releasing stale Connection {}", cpe);
 				_pool.release(cpe.getWrapper(), true);
 			} else if (cpe.isDynamic() && !cpe.inUse()) {
 				if (isStale)
-					log.error("Releasing stale dynamic Connection " + cpe, cpe.getStackInfo());
+					log.atError().withThrowable(cpe.getStackInfo()).log("Releasing stale dynamic Connection {}", cpe);
 				else
-					log.info("Releasing dynamic Connection " + cpe);
+					log.info("Releasing dynamic Connection {}", cpe);
 				
 				cpe.close();
 				_pool.addIdle(cpe);
 			} else if (cpe.inUse())
-				log.info("Connection " + cpe + " in use");
+				log.info("Connection {} in use", cpe);
 			else if (!cpe.inUse() && !cpe.checkConnection()) {
-				log.warn("Reconnecting Connection " + cpe);
+				log.warn("Reconnecting Connection {}", cpe);
 				cpe.close();
 
 				try {
@@ -131,11 +131,11 @@ class ConnectionMonitor implements SharedTask {
 					_pool.addIdle(cpe);
 				} catch (SQLException se) {
 					if (_sqlStatus.contains(se.getSQLState()))
-						log.warn("Transient SQL Error - " + se.getSQLState());
+						log.warn("Transient SQL Error - {}", se.getSQLState());
 					else
-						log.warn("Unknown SQL Error code - " + se.getSQLState());
+						log.warn("Unknown SQL Error code - {}", se.getSQLState());
 				} catch (Exception e) {
-					log.error("Error reconnecting " + cpe, e);
+					log.atError().withThrowable(e).log("Error reconnecting {}", cpe);
 				}
 			}
 		}

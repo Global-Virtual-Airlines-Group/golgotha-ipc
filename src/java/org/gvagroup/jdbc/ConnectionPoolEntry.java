@@ -9,7 +9,7 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 2.61
+ * @version 2.63
  * @since 1.0
  */
 
@@ -133,19 +133,19 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	void free() {
 		if (!inUse()) {
-			log.warn("Attempting to re-free Connection " + _id);
+			log.warn("Attempting to re-free Connection {}", Integer.valueOf(_id));
 			return;
 		}
 
 		// Reset auto-commit property
 		try {
 			if ((_c != null) && (_c.getAutoCommit() != _autoCommit)) {
-				log.info("Resetting autoCommit to " + _autoCommit);
+				log.info("Resetting autoCommit to {}", Boolean.valueOf(_autoCommit));
 				_c.setAutoCommit(_autoCommit);
 				_c.setTransactionIsolation(DEFAULT_SERIALIZATION);
 			}
 		} catch (Exception e) {
-			log.error("Error resetting autoCommit/isolation - " + e.getMessage());
+			log.error("Error resetting autoCommit/isolation - {}", e.getMessage());
 		}
 
 		// Add the usage time to the total for this connection
@@ -246,7 +246,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 			try {
 				_stackInfo = StackUtils.generate(true);
 			} catch (Exception e) {
-				log.warn("Cannot fetch stack trace - " + e.getMessage());
+				log.warn("Cannot fetch stack trace - {}", e.getMessage());
 			}
 		}
 

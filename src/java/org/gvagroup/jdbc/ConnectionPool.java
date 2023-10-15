@@ -16,7 +16,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.60
+ * @version 2.63
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -214,7 +214,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	 */
 	protected ConnectionPoolEntry createConnection(int id) throws SQLException {
 		String url = _props.getProperty("junixsocket.file", _props.getProperty("url"));
-		log.info(String.format("Connecting to %s as user %s ID #%d", url, _props.getProperty("user"), Integer.valueOf(id)));
+		log.info("Connecting to {} as user {} ID #{}", url, _props.getProperty("user"), Integer.valueOf(id));
 		ConnectionPoolEntry entry = new ConnectionPoolEntry(id, _props);
 		entry.setAutoCommit(_autoCommit);
 		entry.connect();
@@ -234,8 +234,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		ConnectionPoolEntry cpe = _idleCons.poll();
 		if (cpe != null) {
 			Connection c = cpe.reserve(_logStack);
-			if (log.isDebugEnabled())
-				log.debug(String.format("Reserving JDBC Connection %s", cpe));
+			log.debug("Reserving JDBC Connection {}", cpe);
 			if (!cpe.isActive())
 				_expandCount.increment();
 			
@@ -286,7 +285,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 			synchronized (_cons) {
 				for (Map.Entry<Integer, ConnectionPoolEntry> me : _cons.entrySet()) {
 					cpe = me.getValue();
-					log.error(String.format("Connection %d connected = %s, active = %s", me.getKey(), Boolean.valueOf(cpe.isConnected()), Boolean.valueOf(cpe.isActive())), cpe.getStackInfo());
+					log.atError().withThrowable(cpe.getStackInfo()).log("Connection {} connected = {}, active = {}", me.getKey(), Boolean.valueOf(cpe.isConnected()), Boolean.valueOf(cpe.isActive()));
 				}
 			}
 		}
@@ -322,13 +321,13 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 				log.info("Rolling back transactions");
 			}
 		} catch (Exception e) {
-			log.warn(String.format("Error rolling back transaction - %s", e.getMessage()));
+			log.warn("Error rolling back transaction - {}", e.getMessage());
 			_monitor.execute();
 		}
 
 		// Check that we got a connection wrapper
 		if (!(c instanceof ConnectionWrapper)) {
-			log.warn(String.format("Invalid JDBC Connection returned - %s", c.getClass().getName()));
+			log.warn("Invalid JDBC Connection returned - {}", c.getClass().getName());
 			return 0;
 		}
 
@@ -336,7 +335,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		ConnectionWrapper cw = (ConnectionWrapper) c;
 		ConnectionPoolEntry cpe = _cons.get(Integer.valueOf(cw.getID()));
 		if (cpe == null) {
-			log.warn(String.format("Invalid JDBC Connection returned - %d" + Integer.valueOf(cw.getID())));
+			log.warn("Invalid JDBC Connection returned - {}", Integer.valueOf(cw.getID()));
 			return 0;
 		}
 
@@ -345,24 +344,23 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		long useTime = cpe.getUseTime();
 		_maxBorrowTime = Math.max(_maxBorrowTime, useTime);
 		if (isForced)
-			log.error(String.format("Forced connection close - JDBC Connection %s", cpe));
+			log.error("Forced connection close - JDBC Connection {}", cpe);
 
 		// If this is a stale dynamic connection, such it down
 		if (cpe.isDynamic() && (useTime > MAX_USE_TIME)) {
-			log.error(String.format("Closed stale dynamic JDBC Connection %s after %d ms", cpe, Long.valueOf(useTime)), cpe.getStackInfo());
+			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic JDBC Connection {} after {} ms", cpe, Long.valueOf(useTime));
 			cpe.close();
 		} else if (!cpe.isDynamic()) {
-			if (log.isDebugEnabled())
-				log.debug(String.format("Released JDBC Connection %s after %d ms", cpe, Long.valueOf(useTime)));
+			log.debug("Released JDBC Connection {} after {}ms", cpe, Long.valueOf(useTime));
 
 			// Check if we need to restart
 			if (isForced || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
-				log.warn(String.format("Restarting JDBC Connection %s after %d (total %d) reservations", cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount())));
+				log.warn("Restarting JDBC Connection {} after {} (total {}) reservations", cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
 				cpe.close();
 				try {
 					cpe.connect();
 				} catch (SQLException se) {
-					log.error(String.format("Cannot reconnect Connection %s", cpe), se);
+					log.atError().withThrowable(se).log("Cannot reconnect Connection {}", cpe);
 				}
 			}
 		}
@@ -402,7 +400,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		// Disconnect the connections
 		for (Iterator<ConnectionPoolEntry> i = _cons.values().iterator(); i.hasNext();) {
 			ConnectionPoolEntry cpe = i.next();
-			if (cpe.inUse()) log.warn(String.format("Forcibly closing JDBC Connection %s", cpe));
+			if (cpe.inUse()) log.warn("Forcibly closing JDBC Connection {}", cpe);
 			cpe.close();
 			i.remove();
 		}
@@ -429,7 +427,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 			} catch (ClassNotFoundException cnfe) {
 				log.warn("Cannot load class com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
 			} catch (Exception e) {
-				log.error(String.format("%s shutting down thread - %s", e.getClass().getSimpleName(), e.getMessage()));
+				log.error("{} shutting down thread - {}", e.getClass().getSimpleName(), e.getMessage());
 			}
 		}
 	}
@@ -498,10 +496,18 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		return _waitCount.longValue();
 	}
 	
+	/**
+	 * Returns the maximum wait time for a connection.
+	 * @return the maximum time in milliseconds
+	 */
 	public long getMaxWaitTime() {
 		return _maxWaitTime;
 	}
 	
+	/**
+	 * Returns the maximum borrow time for a connection.
+	 * @return the maximum time a connection was borrowwed in milliseconds
+	 */
 	public long getMaxBorrowTime() {
 		return _maxBorrowTime;
 	}
