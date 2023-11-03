@@ -16,7 +16,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.63
+ * @version 2.65
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -281,7 +281,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		// Dump stack if this is our first error in a while
 		long now = System.currentTimeMillis();
 		if ((now - _lastPoolFullTime) > 90_000) {
-			log.error(String.format("Pool Full, idleCons = %s", _idleCons));
+			log.error("Pool Full, idleCons = {}", _idleCons);
 			synchronized (_cons) {
 				for (Map.Entry<Integer, ConnectionPoolEntry> me : _cons.entrySet()) {
 					cpe = me.getValue();
