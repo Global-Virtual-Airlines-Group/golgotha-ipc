@@ -4,7 +4,7 @@
 	<!-- Compile shared classes -->
 	<target name="compile" description="Build shared library">
 		<property name="v.major" value="2" />
-		<property name="v.minor" value="64" />
+		<property name="v.minor" value="65" />
 
 		<tstamp>
 			<format property="build_utc" timezone="Etc/Greenwich" pattern="yyyyMMdd HHmmss Z" />
