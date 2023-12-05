@@ -1,16 +1,17 @@
 // Copyright 2007, 2010, 2011, 2013, 2016, 2017, 2019, 2023 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.common;
 
+import java.util.*;
 import java.io.Serializable;
 
-import java.util.*;
-import java.util.logging.Logger;
+import org.apache.logging.log4j.*;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 2.62
+ * @version 2.65
  * @since 1.0
  */
 
@@ -27,7 +28,7 @@ public class SharedData {
 	
 	public static final String ELITE_INFO = "$elite$info";
 
-	private static final Logger log = Logger.getLogger(SharedData.class.getName());
+	private static final Logger log = LogManager.getLogger(SharedData.class.getName());
 
 	private static final Collection<String> _appNames = Collections.synchronizedSet(new LinkedHashSet<String>());
 	private static final Map<String, Serializable> _data = new ConcurrentHashMap<String, Serializable>();
@@ -64,7 +65,7 @@ public class SharedData {
 		ClassLoader myLoader = Thread.currentThread().getContextClassLoader();
 		ClassLoader cl = _loaders.get(key);
 		if ((cl != null) && (cl != myLoader))
-			log.warning("Shared data " + key + " already loaded by " + cl.toString());
+			log.warn("Shared data {} already loaded by {}", key, cl);
 				
 		_data.put(key, value);
 		_loaders.put(key, myLoader);
@@ -90,7 +91,7 @@ public class SharedData {
 			Map.Entry<String, ClassLoader> me = i.next();
 			if (myLoader == me.getValue()) {
 				if (_data.remove(me.getKey()) == null)
-					log.warning("Unable to remove data for " + me.getKey());
+					log.warn("Unable to remove data for {}", me.getKey());
 					
 				i.remove();
 				objCount++;
@@ -98,7 +99,7 @@ public class SharedData {
 		}
 		
 		_appNames.remove(appCode);
-		log.info("Removed " + objCount + " shared objects");
+		log.info("Removed {} shared objects", Integer.valueOf(objCount));
 	}
 	
 	/**
