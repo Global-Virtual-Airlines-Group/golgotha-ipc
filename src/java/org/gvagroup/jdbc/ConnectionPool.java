@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -16,7 +16,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.65
+ * @version 2.66
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -32,6 +32,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways.
 	 */
 	static final int MAX_USE_TIME = 145_000;
+	
+	private final String _name;
 
 	private int _poolMaxSize = 1;
 	private int _maxRequests;
@@ -72,8 +74,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	public ConnectionPool(int maxSize, String name) {
 		super();
 		DriverManager.setLoginTimeout(2);
+		_name = name;
 		_poolMaxSize = maxSize;
-		_monitor = new ConnectionMonitor(name, 30, this);
+		_monitor = new ConnectionMonitor(_name, 30, this);
 		SharedWorker.register(_monitor);
 	}
 
@@ -378,9 +381,10 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	 */
 	public void connect(int initialSize) throws ConnectionPoolException {
 		if ((initialSize < 0) || (initialSize > _poolMaxSize))
-			throw new IllegalArgumentException(String.format("Invalid pool size - %d" + Integer.valueOf(initialSize)));
+			throw new IllegalArgumentException(String.format("Invalid pool size - %d", Integer.valueOf(initialSize)));
 		
 		// Create connections
+		log.info("Opening {} (size={})", _name, Integer.valueOf(initialSize));
 		resetMaxTimes();
 		try {
 			for (int x = 1; x <= initialSize; x++) {
@@ -395,6 +399,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 
 	@Override
 	public void close() {
+		log.info("Closing {}", _name);
 		_monitor.stop();
 
 		// Disconnect the connections
@@ -419,10 +424,14 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 				Object o = f.get(null); f.setAccessible(oldAccess);
 				if (o != null) {
 					Thread t = (Thread) o; int totalTime = 0;
+					log.info("Found thread {} - {}", t.getName(), t.isAlive() ? "Running" : "Terminated");
 					while (t.isAlive() && (totalTime < 250)) {
 						Thread.sleep(50);
 						totalTime += 50;
 					}
+					
+					if (t.isAlive())
+						log.warn("{} still running", t.getName());
 				}
 			} catch (ClassNotFoundException cnfe) {
 				log.warn("Cannot load class com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
@@ -430,6 +439,8 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 				log.error("{} shutting down thread - {}", e.getClass().getSimpleName(), e.getMessage());
 			}
 		}
+		
+		log.info("Shut down {}", _name);
 	}
 	
 	/**
