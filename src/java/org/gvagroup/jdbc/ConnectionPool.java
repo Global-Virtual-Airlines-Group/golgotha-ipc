@@ -405,14 +405,21 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		// Disconnect the connections
 		for (Iterator<ConnectionPoolEntry> i = _cons.values().iterator(); i.hasNext();) {
 			ConnectionPoolEntry cpe = i.next();
-			if (cpe.inUse()) log.warn("Forcibly closing JDBC Connection {}", cpe);
+			if (cpe.inUse()) {
+				try {
+					log.warn("JDNC Connection {} in use, waiting", cpe);
+					Thread.sleep(50);
+				} catch (InterruptedException ie) { /* empty */ }
+			}
+			
+			log.log(cpe.inUse() ? Level.WARN : Level.INFO, "Closing {} JDBC Connection {}", _name, cpe);
 			cpe.close();
 			i.remove();
 		}
 		
 		// MySQL thread shutdown
 		if (_isMySQL) {
-			log.info("Shutting down MySQL abandoned connection thread via checkedShutdown()");
+			log.info("Shutting down MySQL abandoned connection thread");
 			try {
 				Class<?> c = Class.forName("com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
 				Method m = c.getMethod("checkedShutdown", new Class<?>[] {});
