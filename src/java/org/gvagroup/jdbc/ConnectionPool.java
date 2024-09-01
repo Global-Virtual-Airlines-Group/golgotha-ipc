@@ -16,7 +16,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.66
+ * @version 2.67
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -422,8 +422,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 			log.info("Shutting down MySQL abandoned connection thread");
 			try {
 				Class<?> c = Class.forName("com.mysql.cj.jdbc.AbandonedConnectionCleanupThread");
-				Method m = c.getMethod("checkedShutdown", new Class<?>[] {});
+				Method m = c.getMethod("uncheckedShutdown", new Class<?>[] {});
 				m.invoke(null, new Object[] {});
+				Thread.sleep(250);
 				
 				// Wait for thread to die
 				Field f = c.getDeclaredField("threadRef"); 
