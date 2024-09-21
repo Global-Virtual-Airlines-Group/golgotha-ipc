@@ -1,9 +1,9 @@
 // Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
+import java.io.*;
 import java.sql.*;
 import java.util.*;
-import java.io.File;
 import java.lang.reflect.*;
 
 import java.util.concurrent.*;
@@ -16,13 +16,13 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.67
+ * @version 2.70
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
  */
 
-public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
+public class ConnectionPool implements Serializable, Closeable {
 
 	private static final long serialVersionUID = 5092908907485396942L;
 
@@ -31,7 +31,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	/**
 	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways.
 	 */
-	static final int MAX_USE_TIME = 145_000;
+	static transient final int MAX_USE_TIME = 145_000;
 	
 	private final String _name;
 
@@ -76,7 +76,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		DriverManager.setLoginTimeout(2);
 		_name = name;
 		_poolMaxSize = maxSize;
-		_monitor = new ConnectionMonitor(_name, 30, this);
+		_monitor = new ConnectionMonitor(_name, 20, this);
 		SharedWorker.register(_monitor);
 	}
 
@@ -217,7 +217,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	 */
 	protected ConnectionPoolEntry createConnection(int id) throws SQLException {
 		String url = _props.getProperty("junixsocket.file", _props.getProperty("url"));
-		log.info("Connecting to {} as user {} ID #{}", url, _props.getProperty("user"), Integer.valueOf(id));
+		log.info("{} connecting to {} as user {} ID #{}", _name, url, _props.getProperty("user"), Integer.valueOf(id));
 		ConnectionPoolEntry entry = new ConnectionPoolEntry(id, _props);
 		entry.setAutoCommit(_autoCommit);
 		entry.connect();
@@ -233,9 +233,9 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	 */
 	public Connection getConnection() throws ConnectionPoolException {
 
-		// Try and get a connection from the pool
+		// Try and get an idle connection from the pool
 		ConnectionPoolEntry cpe = _idleCons.poll();
-		if (cpe != null) {
+		if ((cpe != null) && cpe.isActive()) {
 			Connection c = cpe.reserve(_logStack);
 			log.debug("Reserving JDBC Connection {}", cpe);
 			if (!cpe.isActive())
@@ -243,31 +243,45 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 			
 			_totalRequests.increment();
 			return c;
+		} else if ((cpe != null) && !cpe.isActive()) {
+			log.warn("{} retrieved idle inactive Connection {}", _name, cpe);
+			cpe = null;
 		}
 
 		// Is the pool at its max size? If not, then create a new connection and add it to the pool
 		synchronized (_cons) {
-			if (_cons.size() < _poolMaxSize) {
+			Optional<ConnectionPoolEntry> nextAvailable = _cons.values().stream().filter(pe -> !pe.isActive()).findFirst();
+			if (!nextAvailable.isPresent() && (_cons.size() < _poolMaxSize)) {
 				try {
 					cpe = createConnection(getNextID());
 					cpe.setDynamic(true);
-					Connection c = cpe.reserve(_logStack);
 					_cons.put(Integer.valueOf(cpe.getID()), cpe);
-
-					// Return back the new connection
-					_totalRequests.increment();
-					_expandCount.increment();
-					return c;
+				} catch (SQLException se) {
+					throw new ConnectionPoolException(se);	
+				}
+			} else if (nextAvailable.isPresent()) {
+				try {
+					cpe = nextAvailable.get();
+					log.info("{} reconnecting Connection {}", _name, cpe);
+					cpe.connect();
 				} catch (SQLException se) {
 					throw new ConnectionPoolException(se);
 				}
 			}
 		}
 
-		// Wait for a new connection to become available
+		// Return back the connection
+		if (cpe != null) {
+			Connection c = cpe.reserve(_logStack);
+			_totalRequests.increment();
+			_expandCount.increment();
+			return c;
+		}
+
+		// Wait for a new connection to become available, since we cannot expand
 		long waitTime = System.nanoTime();
 		try {
-			cpe = _idleCons.poll(950, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(975, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
@@ -276,10 +290,11 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 			log.warn("Interrupted waiting for Connection");
 		} finally {
 			waitTime = System.nanoTime() - waitTime;
+			long ms = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
+			_maxWaitTime = Math.max(_maxWaitTime, ms);
+			if (ms > 75)
+				log.warn("{} waited {}ms for Connection", _name, Long.valueOf(ms));
 		}
-
-		_maxWaitTime = Math.max(_maxWaitTime, TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS));
-		_fullCount.increment();
 		
 		// Dump stack if this is our first error in a while
 		long now = System.currentTimeMillis();
@@ -294,6 +309,7 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		}
 		
 		_lastPoolFullTime = now;
+		_fullCount.increment();
 		throw new ConnectionPoolFullException();
 	}
 	
@@ -329,13 +345,12 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		}
 
 		// Check that we got a connection wrapper
-		if (!(c instanceof ConnectionWrapper)) {
+		if (!(c instanceof @SuppressWarnings("resource") ConnectionWrapper cw)) {
 			log.warn("Invalid JDBC Connection returned - {}", c.getClass().getName());
 			return 0;
 		}
 
 		// Find the connection pool entry and free it
-		ConnectionWrapper cw = (ConnectionWrapper) c;
 		ConnectionPoolEntry cpe = _cons.get(Integer.valueOf(cw.getID()));
 		if (cpe == null) {
 			log.warn("Invalid JDBC Connection returned - {}", Integer.valueOf(cw.getID()));
@@ -347,29 +362,32 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 		long useTime = cpe.getUseTime();
 		_maxBorrowTime = Math.max(_maxBorrowTime, useTime);
 		if (isForced)
-			log.error("Forced connection close - JDBC Connection {}", cpe);
+			log.error("{} forced connection close - JDBC Connection {}", _name, cpe);
 
 		// If this is a stale dynamic connection, such it down
 		if (cpe.isDynamic() && (useTime > MAX_USE_TIME)) {
 			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic JDBC Connection {} after {} ms", cpe, Long.valueOf(useTime));
 			cpe.close();
+			return useTime;
 		} else if (!cpe.isDynamic()) {
-			log.debug("Released JDBC Connection {} after {}ms", cpe, Long.valueOf(useTime));
+			log.debug("{} released JDBC Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
 
 			// Check if we need to restart
 			if (isForced || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
-				log.warn("Restarting JDBC Connection {} after {} (total {}) reservations", cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
+				log.warn("{} restarting JDBC Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
 				cpe.close();
 				try {
 					cpe.connect();
+					_idleCons.add(cpe);
 				} catch (SQLException se) {
-					log.atError().withThrowable(se).log("Cannot reconnect Connection {}", cpe);
+					log.atError().withThrowable(se).log("{} cannot reconnect Connection {}", _name, cpe);
 				}
-			}
-		}
+			} else
+				_idleCons.add(cpe);
+		} else
+			_idleCons.add(cpe);
 
-		// Return connection back to the pool and return usage time
-		_idleCons.add(cpe);
+		// Return usage time
 		return useTime;
 	}
 
@@ -454,13 +472,24 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	/**
 	 * Adds a connection entry back to the list of idle connections.
 	 * @param cpe the ConnectionPoolEntry
-	 * @return TRUE if the connection was not present, otherwise FALSE
+	 * @return TRUE if the connection was already present, otherwise FALSE
 	 */
 	boolean addIdle(ConnectionPoolEntry cpe) {
 		synchronized (_cons) {
 			boolean hasCon = _idleCons.remove(cpe);
 			_idleCons.add(cpe);
 			return hasCon;
+		}
+	}
+	
+	/**
+	 * Removes a connection entry from to the list of idle connections.
+	 * @param cpe the ConnectionPoolEntry
+	 * @return TRUE if the connection was not present, otherwise FALSE
+	 */
+	boolean removeIdle(ConnectionPoolEntry cpe) {
+		synchronized (_cons) {
+			return !_idleCons.remove(cpe);
 		}
 	}
 	
@@ -478,9 +507,20 @@ public class ConnectionPool implements java.io.Serializable, java.io.Closeable {
 	 * Returns all connection pool entries, for use by the {@link ConnectionMonitor}.
 	 * @return a Collection of ConnectionPoolEntry beans
 	 * @see ConnectionMonitor
+	 * @see ConnectionPool#getIdle()
 	 */
 	Collection<ConnectionPoolEntry> getEntries() {
 		return new ArrayList<ConnectionPoolEntry>(_cons.values());
+	}
+	
+	/**
+	 * Returns idle connection pool entries, for use by the {@link ConnectionMonitor}.
+	 * @return a Collection of idle ConnectionPoolEntry beans
+	 * @see ConnectionMonitor
+	 * @see ConnectionPool#getEntries()
+	 */
+	Collection<ConnectionPoolEntry> getIdle() {
+		return new ArrayList<ConnectionPoolEntry>(_idleCons);
 	}
 
 	/**

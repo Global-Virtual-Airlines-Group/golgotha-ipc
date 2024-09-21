@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020, 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020, 2022, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.util.*;
@@ -12,7 +12,7 @@ import org.gvagroup.tomcat.SharedTask;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 2.63
+ * @version 2.70
  * @since 1.0
  */
 
@@ -21,7 +21,7 @@ class ConnectionMonitor implements SharedTask {
 	private static final long serialVersionUID = -5370602877805586773L;
 	
 	private static transient final Logger log = LogManager.getLogger(ConnectionMonitor.class);
-	private static final Collection<String> _sqlStatus = List.of("08003", "08S01");
+	private static transient final Collection<String> _sqlStatus = List.of("08003", "08S01");
 
 	private transient final ConnectionPool _pool;
 	private final String _name;
@@ -30,6 +30,7 @@ class ConnectionMonitor implements SharedTask {
 	private long _poolCheckCount;
 	private long _lastPoolCheck;
 	private boolean _isStopped = false;
+	private boolean _suppressFreeCount = false;
 
 	/**
 	 * Creates a new Connection Monitor.
@@ -87,19 +88,31 @@ class ConnectionMonitor implements SharedTask {
 	public synchronized void execute() {
 		_poolCheckCount++;
 		_lastPoolCheck = System.currentTimeMillis();
-		if (log.isDebugEnabled())
-			log.debug("Checking Connection Pool");
+		log.debug("Checking Connection Pool");
+		
+		// Check entries and idle entries. Number of free should match idle
+		Collection<ConnectionPoolEntry> entries = _pool.getEntries();
+		Collection<ConnectionPoolEntry> idleEntries = _pool.getIdle();
+		long freeCount = entries.stream().filter(cpe -> cpe.isActive() && !cpe.inUse()).count();
+		long idleCount = idleEntries.stream().filter(ConnectionPoolEntry::isActive).count();
+		if ((freeCount != idleEntries.size()) || (idleCount != idleEntries.size())) {
+			if (!_suppressFreeCount)
+				log.warn("{} Free = {}, IdleCount = {}, Idle = {} / {}", _name, Long.valueOf(freeCount), Long.valueOf(idleCount), Integer.valueOf(idleEntries.size()), idleEntries);
+			
+			_suppressFreeCount = true;
+		} else
+			_suppressFreeCount = false;
 
 		// Loop through the entries
-		for (ConnectionPoolEntry cpe : _pool.getEntries()) {
+		for (ConnectionPoolEntry cpe : entries) {
 			boolean isStale = (cpe.getUseTime() > ConnectionPool.MAX_USE_TIME);
 			if (isStale && cpe.isActive()) {
 				long useTime = cpe.getUseTime();
 				long lastActiveInterval = _lastPoolCheck - cpe.getWrapper().getLastUse();
-				if ((useTime - lastActiveInterval) > 1500)
+				if ((useTime - lastActiveInterval) > 15_000)
 					log.warn("Connection reserved for {}ms, last activity {}ms ago", Long.valueOf(cpe.getUseTime()), Long.valueOf(lastActiveInterval));
 				
-				isStale = (lastActiveInterval > 10_000);
+				isStale = (lastActiveInterval > 45_000);
 			}
 
 			// Check if the entry has timed out
@@ -110,25 +123,30 @@ class ConnectionMonitor implements SharedTask {
 				} else
 					log.debug("Skipping inactive connection {}", cpe);
 			} else if (cpe.inUse() && isStale) {
-				log.atError().withThrowable(cpe.getStackInfo()).log("Releasing stale Connection {}", cpe);
+				log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale Connection {}", _name, cpe);
 				_pool.release(cpe.getWrapper(), true);
 			} else if (cpe.isDynamic() && !cpe.inUse()) {
 				if (isStale)
-					log.atError().withThrowable(cpe.getStackInfo()).log("Releasing stale dynamic Connection {}", cpe);
+					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale dynamic Connection {}", _name, cpe);
 				else
-					log.info("Releasing dynamic Connection {}", cpe);
+					log.info("{} releasing dynamic Connection {}, active={}, wrapper={}", _name, cpe, Boolean.valueOf(cpe.isActive()), cpe.getWrapper());
 				
 				cpe.close();
-				_pool.addIdle(cpe);
+				boolean wasNotIdle = _pool.removeIdle(cpe);
+				if (wasNotIdle)
+					log.warn("{} attempted to remove idle connection {}", _name, cpe);
 			} else if (cpe.inUse())
 				log.info("Connection {} in use", cpe);
 			else if (!cpe.inUse() && !cpe.checkConnection()) {
 				log.warn("Reconnecting Connection {}", cpe);
 				cpe.close();
+				_pool.removeIdle(cpe);
 
 				try {
 					cpe.connect();
-					_pool.addIdle(cpe);
+					boolean wasIdle = _pool.addIdle(cpe);
+					if (wasIdle)
+						log.warn("{} returned already idle connection {}", cpe);
 				} catch (SQLException se) {
 					if (_sqlStatus.contains(se.getSQLState()))
 						log.warn("Transient SQL Error - {}", se.getSQLState());
@@ -143,6 +161,6 @@ class ConnectionMonitor implements SharedTask {
 
 	@Override
 	public String toString() {
-		return _name + " JDBC Connection Monitor";
+		return String.format("%s JDBC Connection Monitor", _name);
 	}
 }
