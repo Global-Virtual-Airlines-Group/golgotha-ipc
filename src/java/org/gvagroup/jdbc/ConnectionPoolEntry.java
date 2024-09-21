@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020, 2023 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
 import java.sql.*;
@@ -9,7 +9,7 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 2.63
+ * @version 2.70
  * @since 1.0
  */
 
@@ -20,7 +20,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	private static transient final Logger log = LogManager.getLogger(ConnectionPoolEntry.class);
 	
 	// Default connection serialization
-	private static final int DEFAULT_SERIALIZATION = Connection.TRANSACTION_READ_COMMITTED;
+	private static transient final int DEFAULT_SERIALIZATION = Connection.TRANSACTION_READ_COMMITTED;
 	
 	private transient ConnectionWrapper _c;
 	private StackTrace _stackInfo;
@@ -101,7 +101,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 */
 	void connect() throws SQLException {
 		if ((_c != null) && !_c.isClosed())
-			throw new IllegalStateException("Connection " + toString() + " already Connected");
+			throw new IllegalStateException(String.format("Connection %s already Connected", toString()));
 
 		// Create the connection
 		Connection c = DriverManager.getConnection(_props.getProperty("url"), _props);
