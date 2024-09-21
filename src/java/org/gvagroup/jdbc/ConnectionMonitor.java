@@ -129,12 +129,12 @@ class ConnectionMonitor implements SharedTask {
 				if (isStale)
 					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale dynamic Connection {}", _name, cpe);
 				else
-					log.info("{} releasing dynamic Connection {}, active={}, wrapper={}", _name, cpe, Boolean.valueOf(cpe.isActive()), cpe.getWrapper());
+					log.info("{} releasing dynamic Connection {}", _name, cpe);
 				
 				cpe.close();
 				boolean wasNotIdle = _pool.removeIdle(cpe);
 				if (wasNotIdle)
-					log.warn("{} attempted to remove idle connection {}", _name, cpe);
+					log.warn("{} attempted to remove non-idle connection {}", _name, cpe);
 			} else if (cpe.inUse())
 				log.info("Connection {} in use", cpe);
 			else if (!cpe.inUse() && !cpe.checkConnection()) {
