@@ -1,12 +1,10 @@
 // Copyright 2013 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.jdbc;
 
-import java.util.*;
-
 /**
  * A utility class to capture stack traces.
  * @author Luke
- * @version 1.7
+ * @version 2.71
  * @since 1.7
  */
 
@@ -20,14 +18,6 @@ class StackUtils {
 	}
 
 	/**
-	 * Generates a stack trace with the current package removed.
-	 * @return a StackTrace
-	 */
-	static StackTrace generate() {
-		return generate(true);
-	}
-	
-	/**
 	 * Generates a stack trace.
 	 * @param removeCurrentPackage TRUE if stack frames from the current package should be removed, otherwise FALSE
 	 * @return a StackTrace
@@ -37,15 +27,16 @@ class StackUtils {
 		StackTrace st = new StackTrace();
 		st.fillInStackTrace();
 		if (removeCurrentPackage) {
-			List<StackTraceElement> el = new ArrayList<StackTraceElement>(Arrays.asList(st.getStackTrace()));
-			StackTraceElement ste = el.get(0);
-			while (ste.getClassName().startsWith(PACKAGE) && (el.size() > 1)) {
-				el.remove(0);
-				ste = el.get(0);
-			}
+			StackTraceElement[] stk = st.getStackTrace();
+			StackTraceElement ste = stk[0]; int idx = 0;
+			while (ste.getClassName().startsWith(PACKAGE) && (idx < stk.length))
+				ste = stk[++idx];
 
-			if (el.size() > 1)
-				st.setStackTrace(el.toArray(new StackTraceElement[0]));
+			if (idx < stk.length) {
+				StackTraceElement[] nstk = new StackTraceElement[stk.length - idx];
+				System.arraycopy(stk, idx, nstk, 0, stk.length - idx);
+				st.setStackTrace(nstk);
+			}
 		}
 		
 		return st;
