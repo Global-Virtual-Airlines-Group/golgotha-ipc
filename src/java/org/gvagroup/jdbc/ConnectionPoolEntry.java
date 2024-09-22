@@ -292,7 +292,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * @return a Throwable whose StackTrace is the thread data
 	 * @see Throwable#getStackTrace()
 	 */
-	public Throwable getStackInfo() {
+	public StackTrace getStackInfo() {
 		return _stackInfo;
 	}
 
