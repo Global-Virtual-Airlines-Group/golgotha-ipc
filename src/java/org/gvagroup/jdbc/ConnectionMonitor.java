@@ -4,6 +4,7 @@ package org.gvagroup.jdbc;
 import java.util.*;
 import java.sql.*;
 import java.time.Instant;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.*;
 
@@ -12,7 +13,7 @@ import org.gvagroup.tomcat.SharedTask;
 /**
  * A daemon to monitor JDBC connections.
  * @author Luke
- * @version 2.70
+ * @version 2.71
  * @since 1.0
  */
 
@@ -93,11 +94,11 @@ class ConnectionMonitor implements SharedTask {
 		// Check entries and idle entries. Number of free should match idle
 		Collection<ConnectionPoolEntry> entries = _pool.getEntries();
 		Collection<ConnectionPoolEntry> idleEntries = _pool.getIdle();
-		long freeCount = entries.stream().filter(cpe -> cpe.isActive() && !cpe.inUse()).count();
+		Collection<ConnectionPoolEntry> freeEntries = entries.stream().filter(cpe -> cpe.isActive() && !cpe.inUse()).collect(Collectors.toList());
 		long idleCount = idleEntries.stream().filter(ConnectionPoolEntry::isActive).count();
-		if ((freeCount != idleEntries.size()) || (idleCount != idleEntries.size())) {
+		if ((freeEntries.size() != idleEntries.size()) || (idleCount != idleEntries.size())) {
 			if (!_suppressFreeCount)
-				log.warn("{} Free = {}, IdleCount = {}, Idle = {} / {}", _name, Long.valueOf(freeCount), Long.valueOf(idleCount), Integer.valueOf(idleEntries.size()), idleEntries);
+				log.warn("{} Free = {} / {}, IdleCount = {}, Idle = {} / {}", _name, Long.valueOf(freeEntries.size()), freeEntries, Long.valueOf(idleCount), Integer.valueOf(idleEntries.size()), idleEntries);
 			
 			_suppressFreeCount = true;
 		} else
