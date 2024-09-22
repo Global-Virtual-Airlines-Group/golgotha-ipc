@@ -22,7 +22,7 @@ import org.gvagroup.tomcat.SharedWorker;
  * @see ConnectionMonitor
  */
 
-public class ConnectionPool implements Serializable, Closeable {
+public class ConnectionPool implements Serializable, Closeable, Recycler<Connection> {
 
 	private static final long serialVersionUID = 5092908907485396942L;
 
@@ -41,6 +41,7 @@ public class ConnectionPool implements Serializable, Closeable {
 	private final LongAdder _expandCount = new LongAdder();
 	private final LongAdder _waitCount = new LongAdder();
 	private final LongAdder _fullCount = new LongAdder();
+	private final LongAdder _errorCount = new LongAdder();
 	private boolean _logStack;
 	private transient boolean _isMySQL;
 	private long _lastPoolFullTime;
@@ -50,7 +51,7 @@ public class ConnectionPool implements Serializable, Closeable {
 
 	private final ConnectionMonitor _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry> _cons = new TreeMap<Integer, ConnectionPoolEntry>();
-	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>();
+	private transient final BlockingQueue<ConnectionPoolEntry> _idleCons = new PriorityBlockingQueue<ConnectionPoolEntry>(4, new PoolEntryComparator());
 
 	private transient final Properties _props = new Properties();
 	private boolean _autoCommit = true;
@@ -76,7 +77,7 @@ public class ConnectionPool implements Serializable, Closeable {
 		DriverManager.setLoginTimeout(2);
 		_name = name;
 		_poolMaxSize = maxSize;
-		_monitor = new ConnectionMonitor(_name, 20, this);
+		_monitor = new ConnectionMonitor(_name, 60, this);
 		SharedWorker.register(_monitor);
 	}
 
@@ -237,7 +238,8 @@ public class ConnectionPool implements Serializable, Closeable {
 		ConnectionPoolEntry cpe = _idleCons.poll();
 		if ((cpe != null) && cpe.isActive()) {
 			Connection c = cpe.reserve(_logStack);
-			log.debug("Reserving JDBC Connection {}", cpe);
+			if (!cpe.isDynamic())
+				log.info("{} reserve {} - {}", _name, cpe, _idleCons);
 			if (!cpe.isActive())
 				_expandCount.increment();
 			
@@ -245,6 +247,7 @@ public class ConnectionPool implements Serializable, Closeable {
 			return c;
 		} else if ((cpe != null) && !cpe.isActive()) {
 			log.warn("{} retrieved idle inactive Connection {}", _name, cpe);
+			_errorCount.increment();
 			cpe = null;
 		}
 
@@ -268,8 +271,10 @@ public class ConnectionPool implements Serializable, Closeable {
 					} catch (SQLException se) {
 						throw new ConnectionPoolException(se);
 					}
-				} else
-					log.warn("{} active Connection {} not in idle list", _name, cpe);
+				} else {
+					log.warn("{} active Connection {} not in idle list - {}", _name, cpe, cpe.getStackInfo().getCaller());
+					_errorCount.increment();
+				}
 			}
 		}
 
@@ -316,11 +321,7 @@ public class ConnectionPool implements Serializable, Closeable {
 		throw new ConnectionPoolFullException();
 	}
 	
-	/**
-	 * Returns a connection to the pool.
-	 * @param c the Connection
-	 * @return the number of milliseconds the connection was used for
-	 */
+	@Override
 	public long release(Connection c) {
 		return release(c, false);
 	}
@@ -344,12 +345,14 @@ public class ConnectionPool implements Serializable, Closeable {
 			}
 		} catch (Exception e) {
 			log.warn("Error rolling back transaction - {}", e.getMessage());
+			_errorCount.increment();
 			_monitor.execute();
 		}
 
 		// Check that we got a connection wrapper
 		if (!(c instanceof @SuppressWarnings("resource") ConnectionWrapper cw)) {
 			log.warn("Invalid JDBC Connection returned - {}", c.getClass().getName());
+			_errorCount.increment();
 			return 0;
 		}
 
@@ -357,6 +360,7 @@ public class ConnectionPool implements Serializable, Closeable {
 		ConnectionPoolEntry cpe = _cons.get(Integer.valueOf(cw.getID()));
 		if (cpe == null) {
 			log.warn("Invalid JDBC Connection returned - {}", Integer.valueOf(cw.getID()));
+			_errorCount.increment();
 			return 0;
 		}
 
@@ -371,6 +375,7 @@ public class ConnectionPool implements Serializable, Closeable {
 		if (cpe.isDynamic() && (useTime > MAX_USE_TIME)) {
 			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic JDBC Connection {} after {} ms", cpe, Long.valueOf(useTime));
 			cpe.close();
+			_errorCount.increment();
 			return useTime;
 		} else if (!cpe.isDynamic()) {
 			log.debug("{} released JDBC Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
@@ -381,17 +386,19 @@ public class ConnectionPool implements Serializable, Closeable {
 				cpe.close();
 				try {
 					cpe.connect();
-					_idleCons.add(cpe);
 				} catch (SQLException se) {
 					log.atError().withThrowable(se).log("{} cannot reconnect Connection {}", _name, cpe);
+					_errorCount.increment();
 				}
-			} else
+			}
+			
+			if (cpe.isActive())
 				_idleCons.add(cpe);
 		} else
 			_idleCons.add(cpe);
 
 		// Return usage time
-		if (!cpe.isDynamic()) log.info("{} free {} - {}", _name, cpe, _idleCons);
+		log.info("{} free {} - {} ({}ms)", _name, cpe, _idleCons, Long.valueOf(useTime));
 		return useTime;
 	}
 
@@ -538,6 +545,14 @@ public class ConnectionPool implements Serializable, Closeable {
 	 * @return the number of ConnectionPoolFullExceptions thrown
 	 */
 	public long getFullCount() {
+		return _fullCount.longValue();
+	}
+	
+	/**
+	 * Returns the number of times the Connection Pool has detected a state error.
+	 * @return the number of state errors
+	 */
+	public long getErrorCount() {
 		return _fullCount.longValue();
 	}
 
