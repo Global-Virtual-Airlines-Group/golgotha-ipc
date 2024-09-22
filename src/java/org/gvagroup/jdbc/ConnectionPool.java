@@ -16,7 +16,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 2.70
+ * @version 2.71
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
@@ -250,7 +250,7 @@ public class ConnectionPool implements Serializable, Closeable {
 
 		// Is the pool at its max size? If not, then create a new connection and add it to the pool
 		synchronized (_cons) {
-			Optional<ConnectionPoolEntry> nextAvailable = _cons.values().stream().filter(pe -> !pe.isActive()).findFirst();
+			Optional<ConnectionPoolEntry> nextAvailable = _cons.values().stream().filter(pe -> !pe.inUse()).findFirst();
 			if (!nextAvailable.isPresent() && (_cons.size() < _poolMaxSize)) {
 				try {
 					cpe = createConnection(getNextID());
@@ -260,13 +260,16 @@ public class ConnectionPool implements Serializable, Closeable {
 					throw new ConnectionPoolException(se);	
 				}
 			} else if (nextAvailable.isPresent()) {
-				try {
-					cpe = nextAvailable.get();
-					log.info("{} reconnecting Connection {}", _name, cpe);
-					cpe.connect();
-				} catch (SQLException se) {
-					throw new ConnectionPoolException(se);
-				}
+				cpe = nextAvailable.get();
+				if (!cpe.isActive()) {
+					try {
+						log.info("{} reconnecting Connection {}", _name, cpe);
+						cpe.connect();
+					} catch (SQLException se) {
+						throw new ConnectionPoolException(se);
+					}
+				} else
+					log.warn("{} active Connection {} not in idle list", _name, cpe);
 			}
 		}
 
@@ -388,6 +391,7 @@ public class ConnectionPool implements Serializable, Closeable {
 			_idleCons.add(cpe);
 
 		// Return usage time
+		if (!cpe.isDynamic()) log.info("{} free {} - {}", _name, cpe, _idleCons);
 		return useTime;
 	}
 
@@ -488,9 +492,7 @@ public class ConnectionPool implements Serializable, Closeable {
 	 * @return TRUE if the connection was not present, otherwise FALSE
 	 */
 	boolean removeIdle(ConnectionPoolEntry cpe) {
-		synchronized (_cons) {
-			return !_idleCons.remove(cpe);
-		}
+		return !_idleCons.remove(cpe);
 	}
 	
 	/**
