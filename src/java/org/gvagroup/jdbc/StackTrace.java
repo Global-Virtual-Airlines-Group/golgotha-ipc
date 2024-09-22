@@ -25,9 +25,6 @@ public class StackTrace extends Throwable {
 	 */
 	public String getCaller() {
 		StackTraceElement[] stk = getStackTrace();
-		if (stk.length == 0) return null;
-		
-		StackTraceElement st = stk[0];
-		return String.format("%s#%s (%s:%d)", st.getClassName(), st.getMethodName(), st.getFileName(), Integer.valueOf(st.getLineNumber()));
+		return (stk.length == 0) ? null : stk[0].toString();
 	}
 }

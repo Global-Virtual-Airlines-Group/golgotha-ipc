@@ -10,8 +10,6 @@ package org.gvagroup.jdbc;
 
 class StackUtils {
 	
-	private static final String PACKAGE = StackUtils.class.getPackage().getName();
-
 	// singleton
 	private StackUtils() {
 		super();
@@ -29,7 +27,7 @@ class StackUtils {
 		if (removeCurrentPackage) {
 			StackTraceElement[] stk = st.getStackTrace();
 			StackTraceElement ste = stk[0]; int idx = 0;
-			while (ste.getClassName().startsWith(PACKAGE) && (idx < stk.length))
+			while (ste.getClassName().contains(".jdbc.") && (idx < stk.length))
 				ste = stk[++idx];
 
 			if (idx < stk.length) {
