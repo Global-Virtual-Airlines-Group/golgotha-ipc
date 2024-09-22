@@ -9,7 +9,7 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 2.70
+ * @version 2.71
  * @since 1.0
  */
 
@@ -145,7 +145,7 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 				_c.setTransactionIsolation(DEFAULT_SERIALIZATION);
 			}
 		} catch (Exception e) {
-			log.error("Error resetting autoCommit/isolation - {}", e.getMessage());
+			log.error("Error resetting autoCommit/isolation on {} - {}", Integer.valueOf(_id), e.getMessage());
 		}
 
 		// Add the usage time to the total for this connection
@@ -159,11 +159,8 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 	 * @return TRUE if connected, FALSE if not connected
 	 */
 	boolean checkConnection() {
-		try (Statement s = _c.createStatement()) {
-			try (ResultSet rs = s.executeQuery(_validationQuery)) {
-				rs.next();
-			}
-			
+		try (Statement s = _c.createStatement(); ResultSet rs = s.executeQuery(_validationQuery)) {
+			rs.next();
 			return true;
 		} catch (Exception e) {
 			return false;
@@ -221,25 +218,16 @@ class ConnectionPoolEntry implements java.io.Serializable, Comparable<Connection
 
 	/**
 	 * Reserve this Connection pool entry, and get the underlyig JDBC connection. This method is package private since
-	 * it only should be called by the ConnectionPool object. If the connection has been disconnected, then an attempt
-	 * to reconnect will be made.
+	 * it only should be called by the ConnectionPool object.
 	 * @param logStack whether the current thread's stack state should be preserved
 	 * @return the JDBC Connection object
-	 * @throws ConnectionPoolException if we cannot reconnect
 	 * @throws IllegalStateException if the connection is already reserved
 	 */
-	Connection reserve(boolean logStack) throws ConnectionPoolException {
+	Connection reserve(boolean logStack) {
 		if (inUse())
-			throw new IllegalStateException("Connection " + toString() + " already in use");
-
-		// If we're not connected, reconnect
-		if (!isActive()) {
-			try {
-				connect();
-			} catch (SQLException se) {
-				throw new ConnectionPoolException(se);
-			}
-		}
+			throw new IllegalStateException(String.format("Connection %s already in use", toString()));
+		if (!isActive())
+			throw new IllegalStateException(String.format("Connection %s inactive", toString()));
 
 		// Generate a dummy stack trace if necessary, trimming out entries from this package
 		if (logStack) {
