@@ -8,7 +8,7 @@ package org.gvagroup.jdbc;
  * @since 1.0
  */
 
-class StackTrace extends Throwable {
+public class StackTrace extends Throwable {
 	
 	private static final long serialVersionUID = 4608952212833798308L;
 
