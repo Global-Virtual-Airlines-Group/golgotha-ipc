@@ -4,7 +4,7 @@
 	<!-- Compile shared classes -->
 	<target name="compile" description="Build shared library">
 		<property name="v.major" value="2" />
-		<property name="v.minor" value="71" />
+		<property name="v.minor" value="99" />
 
 		<tstamp>
 			<format property="build_utc" timezone="Etc/Greenwich" pattern="yyyyMMdd HHmmss Z" />
@@ -34,6 +34,8 @@
 		<manifest if:set="jar.compile" file="${java.io.tmpdir}/build/ipc_MANIFEST.MF">
 			<attribute name="Built-By" value="${user.name}" />
 			<section name="common">
+				<attribute name="Bundle-Name" value="IPC" />
+				<attribute name="Bundle-Version" value="${v.major}.${v.minor}" />
 				<attribute name="Specification-Title" value="Golgotha IPC" />
 				<attribute name="Specification-Version" value="${v.major}.${v.minor}" />
 				<attribute name="Specification-Vendor" value="Global Virtual Airlines Group" />
