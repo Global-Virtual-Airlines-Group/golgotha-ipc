@@ -124,12 +124,23 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	}
 
 	/**
-	 * Add the usage time to the total for this connection, and marks this entry as free.
+	 * Adds the usage time to the total for this connection, and marks this entry as free.
 	 */
 	protected void markFree() {
 		_useTime = getUseTime();
 		_totalTime += _useTime;
 		_inUse = false;
+	}
+	
+	/**
+	 * Initializes usage counters, and marks this entry as busy. 
+	 */
+	protected void markUsed() {
+		_startTime = System.currentTimeMillis();
+		_lastUsed = _startTime;
+		_inUse = true;
+		_useCount++;
+		_sessionUseCount++;
 	}
 
 	/**
@@ -209,11 +220,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		}
 
 		// Mark the connection as in use, and return the SQL connection
-		_startTime = System.currentTimeMillis();
-		_lastUsed = _startTime;
-		_inUse = true;
-		_useCount++;
-		_sessionUseCount++;
+		markUsed();
 		return (T) _c;
 	}
 

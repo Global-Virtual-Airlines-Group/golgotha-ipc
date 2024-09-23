@@ -2,7 +2,6 @@
 package org.gvagroup.pool;
 
 import java.io.*;
-import java.sql.*;
 import java.util.*;
 
 import java.util.concurrent.*;
@@ -26,12 +25,16 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 
 	private static final long serialVersionUID = 8550734573930973176L;
 
-	private static transient final Logger log = LogManager.getLogger(ConnectionPool.class);
-
 	/**
 	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways.
 	 */
+	@Deprecated
 	static transient final int MAX_USE_TIME = 145_000;
+	
+	/**
+	 * Pool logger.
+	 */
+	protected transient final Logger log;
 	
 	private final String _name;
 
@@ -69,10 +72,11 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * Creates a new JDBC connection pool.
 	 * @param maxSize the maximum size of the connection pool
 	 * @param name the Connection pool size
+	 * @param logClass the logging class to use
 	 */
-	public ConnectionPool(int maxSize, String name) {
+	public ConnectionPool(int maxSize, String name, Class<?> logClass) {
 		super();
-		DriverManager.setLoginTimeout(2);
+		log = LogManager.getLogger(logClass);
 		_name = name;
 		_poolMaxSize = maxSize;
 		_monitor = new ConnectionMonitor<T>(_name, 60, this);

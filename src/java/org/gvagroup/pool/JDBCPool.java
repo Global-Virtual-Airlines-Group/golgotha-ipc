@@ -5,8 +5,6 @@ import java.sql.*;
 import java.io.File;
 import java.lang.reflect.*;
 
-import org.apache.logging.log4j.*;
-
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
@@ -17,8 +15,6 @@ import org.apache.logging.log4j.*;
 public class JDBCPool extends ConnectionPool<Connection> {
 
 	private static final long serialVersionUID = 4958035033059527516L;
-
-	private static transient final Logger log = LogManager.getLogger(JDBCPool.class);
 
 	private transient boolean _isMySQL;
 	private boolean _autoCommit = true;
@@ -34,7 +30,7 @@ public class JDBCPool extends ConnectionPool<Connection> {
 	 * @param name the Connection pool size
 	 */
 	public JDBCPool(int maxSize, String name) {
-		super(maxSize, name);
+		super(maxSize, name, JDBCPool.class);
 		DriverManager.setLoginTimeout(2);
 	}
 
