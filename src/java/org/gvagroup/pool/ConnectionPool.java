@@ -26,12 +26,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private static final long serialVersionUID = 8550734573930973176L;
 
 	/**
-	 * The maximum amount of time a connection can be reserved before we consider it to be stale and return it anyways.
-	 */
-	@Deprecated
-	static transient final int MAX_USE_TIME = 145_000;
-	
-	/**
 	 * Pool logger.
 	 */
 	protected transient final Logger log;
@@ -340,7 +334,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			log.error("{} forced connection close - JDBC Connection {}", _name, cpe);
 
 		// If this is a stale dynamic connection, such it down
-		if (cpe.isDynamic() && (useTime > MAX_USE_TIME)) {
+		if (cpe.isDynamic() && (useTime > getStaleTime())) {
 			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic JDBC Connection {} after {} ms", cpe, Long.valueOf(useTime));
 			cpe.close();
 			_errorCount.increment();
@@ -519,7 +513,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	
 	/**
 	 * Returns the maximum borrow time for a connection.
-	 * @return the maximum time a connection was borrowwed in milliseconds
+	 * @return the maximum time a connection was borrowed in milliseconds
 	 */
 	public long getMaxBorrowTime() {
 		return _maxBorrowTime;
