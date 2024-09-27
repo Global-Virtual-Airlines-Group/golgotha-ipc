@@ -354,10 +354,11 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				}
 			}
 			
+			
 			if (cpe.isActive())
-				_idleCons.add(cpe);
+				addIdle(cpe);
 		} else
-			_idleCons.add(cpe);
+			addIdle(cpe);
 
 		// Return usage time
 		log.info("{} free {} - {} ({}ms)", _name, cpe, _idleCons, Long.valueOf(useTime));
@@ -417,6 +418,11 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @return TRUE if the connection was already present, otherwise FALSE
 	 */
 	boolean addIdle(ConnectionPoolEntry<T> cpe) {
+		if (cpe.isActive()) {
+			log.warn("{} attempting to return active Connection {}", _name, cpe);
+			return false;
+		}
+		
 		synchronized (_cons) {
 			boolean hasCon = _idleCons.remove(cpe);
 			_idleCons.add(cpe);
