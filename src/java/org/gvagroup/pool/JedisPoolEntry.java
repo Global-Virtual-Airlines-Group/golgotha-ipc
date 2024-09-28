@@ -52,10 +52,12 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 			log.info("Using Unix socket {}", host);
 			Class<?> c = Class.forName(_props.getProperty("socketFactory"));
 			JedisSocketFactory sf = (JedisSocketFactory) c.getDeclaredConstructor().newInstance();
-			Jedis j = new Jedis(sf, new DefaultJedisConfig());
+			JedisConnectionWrapper jw = new JedisConnectionWrapper(new Jedis(sf, new DefaultJedisConfig()), this);
+			setWrapper(jw);
 		} else {
 			int port = Integer.parseInt(_props.getProperty("port", "6379"));
-			Jedis j = new Jedis(host, port);
+			JedisConnectionWrapper jw = new JedisConnectionWrapper(new Jedis(host, port), this);
+			setWrapper(jw);
 		}
 	}
 

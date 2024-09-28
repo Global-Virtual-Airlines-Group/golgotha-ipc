@@ -339,7 +339,7 @@ public class JDBCConnectionWrapper extends ConnectionWrapper<Connection> impleme
 	
 	@Override
 	public String toString() {
-		return "ConnectionWrapper-" + String.valueOf(getID());
+		return "JDBCWrapper-" + String.valueOf(getID());
 	}
 
 	@Override
