@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A utility class to store common data between web applications.
  * @author Luke
- * @version 2.68
+ * @version 3.00
  * @since 1.0
  */
 
@@ -23,12 +23,12 @@ public class SharedData {
 	public static final String ACARS_CMDSTATS = "$acarsDaemon$cmdStats";
 	
 	public static final String JDBC_POOL="$jdbc$pool";
-	public static final String REDIS_POOL="$valkey$pool";
+	public static final String JEDIS_POOL="$valkey$pool";
 	public static final String ECON_DATA = "$econ$master"; 
 	
 	public static final String ELITE_INFO = "$elite$info";
 
-	private static final Logger log = LogManager.getLogger(SharedData.class.getName());
+	private static final Logger log = LogManager.getLogger(SharedData.class);
 
 	private static final Collection<String> _appNames = Collections.synchronizedSet(new LinkedHashSet<String>());
 	private static final Map<String, Serializable> _data = new ConcurrentHashMap<String, Serializable>();
