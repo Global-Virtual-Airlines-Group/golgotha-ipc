@@ -18,9 +18,9 @@ public class TestConnectionPoolEntry extends TestCase {
         _props = new Properties();
         _props.load(new FileInputStream("data/jdbc.properties"));
         Class.forName(_props.getProperty("driver"));
-        _cpe = new JDBCPoolEntry(1, _props);
+        _cpe = new JDBCPoolEntry(1, null, _props);
         _cpe.connect();
-        _c = _cpe.getConnection();
+        _c = _cpe.get();
     }
 
     @Override
@@ -36,7 +36,7 @@ public class TestConnectionPoolEntry extends TestCase {
         assertFalse(_cpe.inUse());
         assertEquals(1, _cpe.getID());
         assertEquals(_c.hashCode(), _cpe.hashCode());
-        assertSame(_c, _cpe.getConnection());
+        assertSame(_c, _cpe.get());
         
         assertFalse(_cpe.isDynamic());
         _cpe.setDynamic(true);
@@ -74,7 +74,7 @@ public class TestConnectionPoolEntry extends TestCase {
     }
     
     public void testCloseException() {
-    	JDBCPoolEntry cpe2 = new JDBCPoolEntry(2, _props);
+    	JDBCPoolEntry cpe2 = new JDBCPoolEntry(2, null, _props);
         cpe2.close();
     }
     
@@ -89,7 +89,7 @@ public class TestConnectionPoolEntry extends TestCase {
     }
     
     public void testIndexOf() {
-       JDBCPoolEntry cpe2 = new JDBCPoolEntry(2, _props);
+       JDBCPoolEntry cpe2 = new JDBCPoolEntry(2, null, _props);
        List<JDBCPoolEntry> l = new ArrayList<JDBCPoolEntry>();
        l.add(_cpe);
        l.add(cpe2);

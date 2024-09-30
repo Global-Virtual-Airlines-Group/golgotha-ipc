@@ -14,7 +14,13 @@ import java.util.concurrent.Executor;
  * @since 1.0
  */
 
-public class JDBCConnectionWrapper extends ConnectionWrapper<Connection> implements Connection {
+public class JDBCConnectionWrapper implements ConnectionWrapper<Connection>, Connection {
+	
+	private final int _id;
+	private long _lastUse;
+	
+	private transient final Connection _c;
+	private transient final ConnectionPoolEntry<Connection> _entry;
 	
 	private boolean _autoCommit;
 
@@ -24,7 +30,41 @@ public class JDBCConnectionWrapper extends ConnectionWrapper<Connection> impleme
 	 * @param cpe the ConnectionPoolEntry to wrap
 	 */
 	JDBCConnectionWrapper(Connection c, JDBCPoolEntry cpe) {
-		super(c, cpe);
+		super();
+		_id = cpe.getID();
+		_c = c;
+		_entry = cpe;
+	}
+	
+	private void recordLastUse() {
+		_lastUse = System.currentTimeMillis();
+	}
+	
+	@Override
+	public int getID() {
+		return _id;
+	}
+	
+	@Override
+	public long getLastUse() {
+		return _lastUse;
+	}
+	
+	@Override
+	public Connection get() {
+		return _c;
+	}
+	
+	@Override
+	public void close() {
+		recordLastUse();
+		_entry.free();
+	}
+	
+	@Override
+	public void forceClose() throws Exception {
+		recordLastUse();
+		_c.close();
 	}
 	
 	@Override
@@ -32,13 +72,6 @@ public class JDBCConnectionWrapper extends ConnectionWrapper<Connection> impleme
 		recordLastUse();
 		_c.clearWarnings();
 	}
-
-	@Override
-	public void close() {
-		recordLastUse();
-		_entry.free();
-	}
-	
 
 	@Override
 	public void commit() throws SQLException {

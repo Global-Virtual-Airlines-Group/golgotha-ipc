@@ -20,7 +20,7 @@ public class JedisPool extends ConnectionPool<Jedis> {
 	 * @param name the pool name
 	 */
 	public JedisPool(int maxSize, String name) {
-		super(maxSize, String.format("Jedis-%", name), JedisPool.class);
+		super(maxSize, name, JedisPool.class);
 	}
 
 	@Override
@@ -30,15 +30,15 @@ public class JedisPool extends ConnectionPool<Jedis> {
 
 	@Override
 	protected ConnectionPoolEntry<Jedis> createConnection(int id) throws Exception {
-		String url = _props.getProperty("socketFile", _props.getProperty("url"));
+		String url = _props.getProperty("socketFile", _props.getProperty("addr"));
 		log.info("{} connecting to {} ID #{}", getName(), url, Integer.valueOf(id));
-		JedisPoolEntry entry = new JedisPoolEntry(id, _props);
+		JedisPoolEntry entry = new JedisPoolEntry(id, this, _props);
 		entry.connect();
 		return entry;
 	}
 
 	@Override
-	protected void cleanup(Jedis c) throws Exception {
-		// empty
+	protected void cleanup(Jedis j) throws Exception {
+		j.resetState();
 	}
 }

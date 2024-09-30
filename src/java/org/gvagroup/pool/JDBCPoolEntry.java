@@ -4,8 +4,6 @@ package org.gvagroup.pool;
 import java.sql.*;
 import java.util.*;
 
-import org.apache.logging.log4j.*;
-
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
@@ -17,8 +15,6 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 
 	private static final long serialVersionUID = 986869655819214021L;
 	
-	private static transient final Logger log = LogManager.getLogger(JDBCPoolEntry.class);
-
 	// Default connection serialization
 	private static transient final int DEFAULT_SERIALIZATION = Connection.TRANSACTION_READ_COMMITTED;
 	
@@ -29,10 +25,11 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 	/**
 	 * Create a new Connection Pool entry.
 	 * @param id the connection pool entry ID
+	 * @param src the connection data source
 	 * @param props JDBC connection properties
 	 */
-	JDBCPoolEntry(int id, Properties props) {
-		super(id);
+	JDBCPoolEntry(int id, Recycler<Connection> src, Properties props) {
+		super(id, src, JDBCPoolEntry.class);
 		if (props.containsKey("validationQuery")) {
 			_validationQuery = props.getProperty("validationQuery");
 			props.remove("validationQuery");
@@ -53,7 +50,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 	 */
 	@Override
 	void connect() throws SQLException {
-		Connection c = isActive() ? getConnection() : null;
+		Connection c = isActive() ? get() : null;
 		if ((c != null) && !c.isClosed())
 			throw new IllegalStateException(String.format("Connection %s already Connected", toString()));
 
@@ -72,7 +69,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 
 		// Reset auto-commit property
 		try {
-			Connection c = getConnection();
+			Connection c = get();
 			if ((c != null) && (c.getAutoCommit() != _autoCommit)) {
 				log.info("Resetting autoCommit to {}", Boolean.valueOf(_autoCommit));
 				c.setAutoCommit(_autoCommit);
@@ -85,10 +82,21 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 		// Add the usage time to the total for this connection
 		markFree();
 	}
+
+	@Override
+	Connection reserve(boolean logStack) {
+		checkState();
+		if (logStack)
+			generateStackTrace();
+
+		// Mark the connection as in use, and return the SQL connection
+		markUsed();
+		return (Connection) getWrapper();
+	}
 	
 	@Override
 	boolean checkConnection() {
-		Connection c = getConnection();
+		Connection c = get();
 		try (Statement s = c.createStatement(); ResultSet rs = s.executeQuery(_validationQuery)) {
 			return rs.next();
 		} catch (SQLException se) {

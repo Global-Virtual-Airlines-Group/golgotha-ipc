@@ -10,77 +10,44 @@ package org.gvagroup.pool;
  * @since 1.0
  */
 
-public abstract class ConnectionWrapper<T extends AutoCloseable> implements AutoCloseable, Comparable<ConnectionWrapper<T>> {
-	
-	private final int _id;
-	private long _lastUse;
-	
-	/**
-	 * The connection.
-	 */
-	protected transient final T _c;
-	
-	/**
-	 * The connection pool entry.
-	 */
-	protected transient final ConnectionPoolEntry<T> _entry;
-
-	/**
-	 * Creates the wrapper.
-	 * @param c the connection
-	 * @param cpe the ConnectionPoolEntry to wrap
-	 */
-	protected ConnectionWrapper(T c, ConnectionPoolEntry<T> cpe) {
-		super();
-		_c = c;
-		_id = cpe.getID();
-		_entry = cpe;
-	}
+public interface ConnectionWrapper<T extends AutoCloseable> extends Comparable<ConnectionWrapper<T>> {
 	
 	/**
 	 * Returns the Connection Pool ID for this Connection.
 	 * @return the ID
 	 * @see ConnectionPoolEntry#getID()
 	 */
-	public int getID() {
-		return _id;
-	}
+	public int getID();
 	
 	/**
 	 * Returns the last time the underlying JDBC connection was accessed.
 	 * @return the last use date/time
 	 */
-	long getLastUse() {
-		return _lastUse;
-	}
-	
-	/**
-	 * Helper method to record last connection use.
-	 */
-	protected void recordLastUse() {
-		_lastUse = System.currentTimeMillis();
-	}
-
-	@Override
-	public void close() {
-		recordLastUse();
-		_entry.free();
-	}
-	
-	/**
-	 * Forces a close of the underlying connection.
-	 * @throws Exception if an error occurs
-	 */
-	void forceClose() throws Exception {
-		recordLastUse();
-		_c.close();
-	}
+	long getLastUse();
 	
 	/**
 	 * Returns the unwrapped connection.
 	 * @return the connection
 	 */
-	T getConnection() {
-		return _c;
+	T get();
+	
+	/**
+	 * Overrides {@link AutoCloseable#close()} to return the connection to the pool.
+	 */
+	void close();
+	
+	/**
+	 * Forcibly closes the connection.
+	 * @throws Exception if an error occurs
+	 */
+	void forceClose() throws Exception;
+	
+	/**
+	 * Compares two connection wrappers by comparing their ID and last use times.
+	 */
+	@Override
+	default int compareTo(ConnectionWrapper<T> cw) {
+		int tmpResult = Integer.compare(getID(), cw.getID());
+		return (tmpResult == 0) ? Long.compare(getLastUse(), cw.getLastUse()) : tmpResult;
 	}
 }

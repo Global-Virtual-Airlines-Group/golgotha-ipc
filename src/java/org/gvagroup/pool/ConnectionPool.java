@@ -63,12 +63,12 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	}
 
 	/**
-	 * Creates a new JDBC connection pool.
+	 * Creates a new connection pool.
 	 * @param maxSize the maximum size of the connection pool
 	 * @param name the Connection pool size
 	 * @param logClass the logging class to use
 	 */
-	public ConnectionPool(int maxSize, String name, Class<?> logClass) {
+	protected ConnectionPool(int maxSize, String name, Class<?> logClass) {
 		super();
 		log = LogManager.getLogger(logClass);
 		_name = name;
@@ -133,7 +133,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	}
 
 	/**
-	 * Sets the credentials used to connect to the JDBC data source.
+	 * Sets the credentials used to connect to the data source.
 	 * @param user the User ID
 	 * @param pwd the password
 	 */
@@ -143,7 +143,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	}
 	
 	/**
-	 * Sets the maximum number of reservations of a JDBC Connection. After the maximum number of reservations have been
+	 * Sets the maximum number of reservations of a Connection. After the maximum number of reservations have been
 	 * made, the Connection is closed and another one opened in its place.
 	 * @param maxReqs the maximum number of reuqests, or 0 to disable
 	 */
@@ -169,14 +169,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	}
 	
 	/**
-	 * Sets the data source URL to use.
-	 * @param url the JDBC URL
-	 */
-	public void setURL(String url) {
-		_props.put("url", url);
-	}
-
-	/**
 	 * Adds a new connection to the connection pool.
 	 * @return the new connection pool entry
 	 * @param id the Connection ID
@@ -192,10 +184,9 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	protected abstract void cleanup(T c) throws Exception;
 
 	/**
-	 * Gets a JDBC connection from the connection pool. The size of the connection pool will be increased if the pool is
+	 * Gets a connection from the connection pool. The size of the connection pool will be increased if the pool is
 	 * full but maxSize has not been reached.
-	 * @return the JDBC connection
-	 * @throws IllegalStateException if the connection pool is not connected to the JDBC data source
+	 * @return the connection
 	 * @throws ConnectionPoolException if the connection pool is entirely in use
 	 */
 	public T getConnection() throws ConnectionPoolException {
@@ -303,7 +294,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		if (c == null) return 0;
 
 		// Check that we got a connection wrapper
-		if (!(c instanceof @SuppressWarnings("resource") ConnectionWrapper cw)) {
+		if (!(c instanceof ConnectionWrapper cw)) {
 			log.warn("Invalid Connection returned - {}", c.getClass().getName());
 			_errorCount.increment();
 			return 0;
@@ -327,24 +318,24 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		}
 
 		// Free the connection and reset last use
-		cw.close();
+		cpe.free();
 		long useTime = cpe.getUseTime();
 		_maxBorrowTime = Math.max(_maxBorrowTime, useTime);
 		if (isForced)
-			log.error("{} forced connection close - JDBC Connection {}", _name, cpe);
+			log.error("{} forced connection close - Connection {}", _name, cpe);
 
 		// If this is a stale dynamic connection, such it down
 		if (cpe.isDynamic() && (useTime > getStaleTime())) {
-			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic JDBC Connection {} after {} ms", cpe, Long.valueOf(useTime));
+			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic Connection {} after {} ms", cpe, Long.valueOf(useTime));
 			cpe.close();
 			_errorCount.increment();
 			return useTime;
 		} else if (!cpe.isDynamic()) {
-			log.debug("{} released JDBC Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
+			log.debug("{} released Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
 
 			// Check if we need to restart
 			if (isForced || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
-				log.warn("{} restarting JDBC Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
+				log.warn("{} restarting Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
 				cpe.close();
 				try {
 					cpe.connect();
@@ -366,10 +357,10 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	}
 
 	/**
-	 * Connects the pool to the JDBC data source.
+	 * Connects the pool to the data source.
 	 * @param initialSize the initial number of connections to establish
 	 * @throws IllegalArgumentException if initialSize is negative or greater than getMaxSize()
-	 * @throws ConnectionPoolException if a JDBC error occurs
+	 * @throws ConnectionPoolException if an error occurs
 	 */
 	public void connect(int initialSize) throws ConnectionPoolException {
 		if ((initialSize < 0) || (initialSize > _poolMaxSize))
@@ -391,7 +382,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 
 	@Override
 	public void close() {
-		log.info("Closing {}", _name);
+		log.info("Shutting down pool {}", _name);
 		_monitor.stop();
 
 		// Disconnect the connections
@@ -399,12 +390,12 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			ConnectionPoolEntry<T> cpe = i.next();
 			if (cpe.inUse()) {
 				try {
-					log.warn("JDNC Connection {} in use, waiting", cpe);
+					log.warn("Connection {} in use, waiting", cpe);
 					Thread.sleep(50);
 				} catch (InterruptedException ie) { /* empty */ }
 			}
 			
-			log.log(cpe.inUse() ? Level.WARN : Level.INFO, "Closing {} JDBC Connection {}", _name, cpe);
+			log.log(cpe.inUse() ? Level.WARN : Level.INFO, "Closing {} Connection {}", _name, cpe);
 			cpe.close();
 			i.remove();
 		}

@@ -3,8 +3,6 @@ package org.gvagroup.pool;
 
 import java.util.Properties;
 
-import org.apache.logging.log4j.*;
-
 import redis.clients.jedis.*;
 
 /**
@@ -18,8 +16,6 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 
 	private static final long serialVersionUID = -8922331133236192374L;
 	
-	private static transient final Logger log = LogManager.getLogger(JedisPoolEntry.class);
-	
 	private final Properties _props = new Properties();
 	
 	private static class DefaultJedisConfig implements JedisClientConfig {
@@ -31,10 +27,11 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	/**
 	 * Creates the pool entry.
 	 * @param id the Connection ID
+	 * @param src the data source
 	 * @param props the connection properties
 	 */
-	public JedisPoolEntry(int id, Properties props) {
-		super(id);
+	public JedisPoolEntry(int id, Recycler<Jedis> src, Properties props) {
+		super(id, src, JedisPoolEntry.class);
 		_props.putAll(props);
 	}
 	
@@ -47,18 +44,32 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	void connect() throws Exception {
 		
 		// Check for domain socket
-		String host = _props.contains("host") ? "localhost" : _props.getProperty("host");
+		String host = _props.contains("addr") ? "localhost" : _props.getProperty("addr");
 		if (host.startsWith("/") && _props.contains("socketFactory")) {
 			log.info("Using Unix socket {}", host);
 			Class<?> c = Class.forName(_props.getProperty("socketFactory"));
 			JedisSocketFactory sf = (JedisSocketFactory) c.getDeclaredConstructor().newInstance();
-			JedisConnectionWrapper jw = new JedisConnectionWrapper(new Jedis(sf, new DefaultJedisConfig()), this);
-			setWrapper(jw);
+			setWrapper(new JedisWrapper(sf, new DefaultJedisConfig(), this));
 		} else {
 			int port = Integer.parseInt(_props.getProperty("port", "6379"));
-			JedisConnectionWrapper jw = new JedisConnectionWrapper(new Jedis(host, port), this);
-			setWrapper(jw);
+			setWrapper(new JedisWrapper(host, port, this));
 		}
+
+		Jedis j = get();
+		j.select(Integer.parseInt(_props.getProperty("db", "0")));
+		j.clientSetname(String.format("%s-%d", _props.getProperty("poolName", "jedis"), Integer.valueOf(getID())));
+	}
+	
+	@Override
+	Jedis reserve(boolean logStack) {
+		checkState();
+		if (logStack)
+			generateStackTrace();
+		
+		// Mark the connection as in use, and return the Jedis connection
+		markUsed();
+		ConnectionWrapper<Jedis> jw = getWrapper();
+		return jw.get();
 	}
 
 	@Override
@@ -73,9 +84,12 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	boolean checkConnection() {
 		markUsed();
 		try {
-			Jedis j = getConnection();
+			Jedis j = get(); // Don't autoclose as the pool will do this
 			String result = j.ping();
 			return "PONG".equals(result);
+		} catch (Exception e) {
+			log.error("Error checking {}-{} - {}", getType(), Integer.valueOf(getID()), e.getMessage());
+			return false;
 		} finally {
 			markFree();
 		}

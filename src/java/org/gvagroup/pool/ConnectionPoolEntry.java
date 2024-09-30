@@ -15,9 +15,13 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 
 	private static final long serialVersionUID = -6121720901088473809L;
 
-	private static transient final Logger log = LogManager.getLogger(ConnectionPoolEntry.class);
+	/**
+	 * Logger.
+	 */
+	protected transient final Logger log;
 	
 	private transient ConnectionWrapper<T> _c;
+	private transient Recycler<T> _src;
 	private StackTrace _stackInfo;
 	private final int _id;
 
@@ -36,10 +40,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	/**
 	 * Create a new Connection Pool entry.
 	 * @param id the connection pool entry ID
+	 * @param src the connection data source
+	 * @param logClass the Logger class
 	 */
-	protected ConnectionPoolEntry(int id) {
+	protected ConnectionPoolEntry(int id, Recycler<T> src, Class<? extends ConnectionPoolEntry<T>> logClass) {
 		super();
 		_id = id;
+		_src = src;
+		log = LogManager.getLogger(logClass);
 	}
 	
 	/**
@@ -148,14 +156,21 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 * @return TRUE if connected, FALSE if not connected
 	 */
 	abstract boolean checkConnection();
+	
+	/**
+	 * Returns this entry's connection to its original source.
+	 */
+	void recycle() {
+		_src.release(_c.get());
+	}
 
 	/**
 	 * Returns the connection object behind this ConnectionPoolEntry. This is package protected since it should only be accessed by the equals() method or the connection pool itself.
 	 * @return the Connection
-	 * @see ConnectionWrapper#getConnection()
+	 * @see ConnectionWrapper#get()
 	 */
-	T getConnection() {
-		return _c.getConnection();
+	T get() {
+		return _c.get();
 	}
 	
 	/**
@@ -197,32 +212,34 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	}
 
 	/**
-	 * Reserve this Connection pool entry, and get the underlyig JDBC connection. This method is package private since
-	 * it only should be called by the ConnectionPool object.
-	 * @param logStack whether the current thread's stack state should be preserved
-	 * @return the JDBC Connection object
-	 * @throws IllegalStateException if the connection is already reserved
+	 * Checks connection state prior to reservation.
 	 */
-	@SuppressWarnings("unchecked")
-	T reserve(boolean logStack) {
+	protected void checkState() {
 		if (inUse())
 			throw new IllegalStateException(String.format("Connection %s already in use", toString()));
 		if (!isActive())
 			throw new IllegalStateException(String.format("Connection %s inactive", toString()));
-
-		// Generate a dummy stack trace if necessary, trimming out entries from this package
-		if (logStack) {
-			try {
-				_stackInfo = StackUtils.generate(true);
-			} catch (Exception e) {
-				log.warn("Cannot fetch stack trace - {}", e.getMessage());
-			}
-		}
-
-		// Mark the connection as in use, and return the SQL connection
-		markUsed();
-		return (T) _c;
 	}
+
+	/**
+	 * Generates the stack trace data.
+	 */
+	protected void generateStackTrace() {
+		try {
+			_stackInfo = StackUtils.generate(true);
+		} catch (Exception e) {
+			log.warn("Cannot fetch stack trace - {}", e.getMessage());
+		}
+	}
+	
+	/**
+	 * Reserve this Connection pool entry, and get the underlyig connection. This method is package private since
+	 * it only should be called by the ConnectionPool object.
+	 * @param logStack whether the current thread's stack state should be preserved
+	 * @return the Connection object
+	 * @throws IllegalStateException if the connection is already reserved
+	 */
+	abstract T reserve(boolean logStack);
 
 	/**
 	 * Returns how long this connection was used the last time.

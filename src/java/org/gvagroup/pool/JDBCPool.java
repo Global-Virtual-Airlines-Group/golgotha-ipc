@@ -43,6 +43,14 @@ public class JDBCPool extends ConnectionPool<Connection> {
 	}
 	
 	/**
+	 * Sets the data source URL to use.
+	 * @param url the JDBC URL
+	 */
+	public void setURL(String url) {
+		_props.put("url", url);
+	}
+	
+	/**
 	 * Sets a domain socket to connect to.
 	 * @param socketFile the path to the Unix domain socket
 	 */
@@ -81,7 +89,7 @@ public class JDBCPool extends ConnectionPool<Connection> {
 	protected ConnectionPoolEntry<Connection> createConnection(int id) throws SQLException {
 		String url = _props.getProperty("junixsocket.file", _props.getProperty("url"));
 		log.info("{} connecting to {} as user {} ID #{}", getName(), url, _props.getProperty("user"), Integer.valueOf(id));
-		JDBCPoolEntry entry = new JDBCPoolEntry(id, _props);
+		JDBCPoolEntry entry = new JDBCPoolEntry(id, this, _props);
 		entry.setAutoCommit(_autoCommit);
 		entry.connect();
 		return entry;

@@ -10,8 +10,8 @@ public class TestPoolEntryComparator extends TestCase {
 	
 	public void testPersistent() {
 		
-		JDBCPoolEntry e1 = new JDBCPoolEntry(1, new Properties());
-		JDBCPoolEntry e2 = new JDBCPoolEntry(2, new Properties());
+		JDBCPoolEntry e1 = new JDBCPoolEntry(1, null, new Properties());
+		JDBCPoolEntry e2 = new JDBCPoolEntry(2, null, new Properties());
 		
 		assertFalse(e1.isDynamic());
 		assertFalse(e2.isDynamic());
@@ -21,9 +21,9 @@ public class TestPoolEntryComparator extends TestCase {
 	
 	public void testDynamic() {
 		
-		JDBCPoolEntry e1 = new JDBCPoolEntry(1, new Properties());
+		JDBCPoolEntry e1 = new JDBCPoolEntry(1, null, new Properties());
 		e1.setDynamic(true);
-		JDBCPoolEntry e2 = new JDBCPoolEntry(2, new Properties());
+		JDBCPoolEntry e2 = new JDBCPoolEntry(2, null, new Properties());
 		e2.setDynamic(true);
 		
 		assertTrue(e1.isDynamic());
@@ -34,9 +34,9 @@ public class TestPoolEntryComparator extends TestCase {
 
 	public void testPersistentDynamic() {
 		
-		JDBCPoolEntry e1 = new JDBCPoolEntry(1, new Properties());
+		JDBCPoolEntry e1 = new JDBCPoolEntry(1, null, new Properties());
 		e1.setDynamic(true);
-		JDBCPoolEntry e2 = new JDBCPoolEntry(2, new Properties());
+		JDBCPoolEntry e2 = new JDBCPoolEntry(2, null, new Properties());
 		e2.setDynamic(false);
 
 		assertTrue(e1.isDynamic());
