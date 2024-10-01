@@ -20,7 +20,7 @@ public class JedisPool extends ConnectionPool<Jedis> {
 	 * @param name the pool name
 	 */
 	public JedisPool(int maxSize, String name) {
-		super(maxSize, name, JedisPool.class);
+		super(maxSize, name, 10, JedisPool.class);
 	}
 
 	@Override

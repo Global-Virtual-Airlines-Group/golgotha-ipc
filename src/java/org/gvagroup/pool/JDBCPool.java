@@ -30,7 +30,7 @@ public class JDBCPool extends ConnectionPool<Connection> {
 	 * @param name the Connection pool size
 	 */
 	public JDBCPool(int maxSize, String name) {
-		super(maxSize, name, JDBCPool.class);
+		super(maxSize, name, 30, JDBCPool.class);
 		DriverManager.setLoginTimeout(2);
 	}
 	

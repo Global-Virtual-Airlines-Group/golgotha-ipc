@@ -65,15 +65,16 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	/**
 	 * Creates a new connection pool.
 	 * @param maxSize the maximum size of the connection pool
-	 * @param name the Connection pool size
+	 * @param name the connection pool name
+	 * @param monitorInterval the connection monitor interval in seconds
 	 * @param logClass the logging class to use
 	 */
-	protected ConnectionPool(int maxSize, String name, Class<?> logClass) {
+	protected ConnectionPool(int maxSize, String name, int monitorInterval, Class<?> logClass) {
 		super();
 		log = LogManager.getLogger(logClass);
 		_name = name;
 		_poolMaxSize = maxSize;
-		_monitor = new ConnectionMonitor<T>(_name, 60, this);
+		_monitor = new ConnectionMonitor<T>(_name, Math.max(1, monitorInterval), this);
 		SharedWorker.register(_monitor);
 	}
 	
