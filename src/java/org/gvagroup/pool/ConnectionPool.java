@@ -177,13 +177,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	protected abstract ConnectionPoolEntry<T> createConnection(int id) throws Exception;
 	
 	/**
-	 * Cleanup hook for connections before returning back to the pool.
-	 * @param c the connection
-	 * @throws Exception if an error occurs
-	 */
-	protected abstract void cleanup(T c) throws Exception;
-
-	/**
 	 * Gets a connection from the connection pool. The size of the connection pool will be increased if the pool is
 	 * full but maxSize has not been reached.
 	 * @return the connection
@@ -299,15 +292,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			_errorCount.increment();
 			return 0;
 		}
-		
-		// Do any cleanup
-		try {
-			cleanup(c);
-		} catch (Exception e) {
-			log.warn("{} error cleaning up {}  - {}", _name, c, e.getMessage());
-			_errorCount.increment();
-			_monitor.execute();
-		}
 
 		// Find the connection pool entry and free it
 		ConnectionPoolEntry<T> cpe = _cons.get(Integer.valueOf(cw.getID()));
@@ -315,6 +299,15 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			log.warn("Invalid Connection returned - {}", Integer.valueOf(cw.getID()));
 			_errorCount.increment();
 			return 0;
+		}
+		
+		// Do any cleanup
+		try {
+			cpe.cleanup();
+		} catch (Exception e) {
+			log.warn("{} error cleaning up {}  - {}", _name, c, e.getMessage());
+			_errorCount.increment();
+			_monitor.execute();
 		}
 
 		// Free the connection and reset last use
@@ -344,7 +337,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					_errorCount.increment();
 				}
 			}
-			
 			
 			if (cpe.isConnected())
 				addIdle(cpe);

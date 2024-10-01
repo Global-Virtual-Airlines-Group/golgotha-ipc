@@ -44,11 +44,11 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	void connect() throws Exception {
 		
 		// Check for domain socket
-		String host = _props.contains("addr") ? "localhost" : _props.getProperty("addr");
-		if (host.startsWith("/") && _props.contains("socketFactory")) {
+		log.info(_props);
+		String host = _props.getProperty("addr", "locahost");
+		if (host.startsWith("/")) {
 			log.info("Using Unix socket {}", host);
-			Class<?> c = Class.forName(_props.getProperty("socketFactory"));
-			JedisSocketFactory sf = (JedisSocketFactory) c.getDeclaredConstructor().newInstance();
+			JedisSocketFactory sf = new JedisDomainSocketFactory(host);
 			setWrapper(new JedisWrapper(sf, new DefaultJedisConfig(), this));
 		} else {
 			int port = Integer.parseInt(_props.getProperty("port", "6379"));
@@ -68,8 +68,7 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 		
 		// Mark the connection as in use, and return the Jedis connection
 		markUsed();
-		ConnectionWrapper<Jedis> jw = getWrapper();
-		return jw.get();
+		return getWrapper().get();
 	}
 
 	@Override
@@ -93,5 +92,11 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 		} finally {
 			markFree();
 		}
+	}
+	
+	@Override
+	void cleanup() {
+		Jedis j = get(); // Don't autoclose as the pool will do this
+		j.resetState();
 	}
 }

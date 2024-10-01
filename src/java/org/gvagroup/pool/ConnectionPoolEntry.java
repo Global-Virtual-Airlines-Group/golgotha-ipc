@@ -156,6 +156,12 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 * @return TRUE if connected, FALSE if not connected
 	 */
 	abstract boolean checkConnection();
+
+	/**
+	 * Cleans up lingering connection state.
+	 * @throws Exception if an error occurs
+	 */
+	abstract void cleanup() throws Exception;
 	
 	/**
 	 * Returns this entry's connection to its original source.

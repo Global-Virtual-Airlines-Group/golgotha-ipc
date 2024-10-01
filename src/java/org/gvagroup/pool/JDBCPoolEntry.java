@@ -103,6 +103,16 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 			return false;
 		}
 	}
+	
+	
+	@Override
+	protected void cleanup() throws SQLException {
+		Connection c = get();
+		if (!c.getAutoCommit()) {
+			c.rollback();
+			log.info("Rolling back transactions");
+		}
+	}
 
 	/**
 	 * Sets the automatic commit setting for this connection. When set, all transactions will be committed to the JDBC

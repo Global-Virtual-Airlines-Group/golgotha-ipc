@@ -1,8 +1,6 @@
 // Copyright 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
-import org.apache.logging.log4j.*;
-
 import redis.clients.jedis.*;
 
 /**

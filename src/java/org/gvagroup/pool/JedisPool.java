@@ -36,9 +36,4 @@ public class JedisPool extends ConnectionPool<Jedis> {
 		entry.connect();
 		return entry;
 	}
-
-	@Override
-	protected void cleanup(Jedis j) throws Exception {
-		j.resetState();
-	}
 }

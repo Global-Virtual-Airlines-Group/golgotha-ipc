@@ -94,14 +94,6 @@ public class JDBCPool extends ConnectionPool<Connection> {
 		entry.connect();
 		return entry;
 	}
-	
-	@Override
-	protected void cleanup(Connection c) throws SQLException {
-		if (!c.getAutoCommit()) {
-			c.rollback();
-			log.info("Rolling back transactions");
-		}
-	}
 
 	@Override
 	public void close() {
