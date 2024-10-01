@@ -44,7 +44,6 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	void connect() throws Exception {
 		
 		// Check for domain socket
-		log.info(_props);
 		String host = _props.getProperty("addr", "locahost");
 		if (host.startsWith("/")) {
 			log.info("Using Unix socket {}", host);
