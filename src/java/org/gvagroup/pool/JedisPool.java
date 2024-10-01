@@ -27,6 +27,11 @@ public class JedisPool extends ConnectionPool<Jedis> {
 	int getStaleTime() {
 		return 5000;
 	}
+	
+	@Override
+	public String getType() {
+		return "Jedis";
+	}
 
 	@Override
 	protected ConnectionPoolEntry<Jedis> createConnection(int id) throws Exception {

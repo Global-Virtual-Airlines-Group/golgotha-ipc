@@ -85,6 +85,12 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		return _name;
 	}
 	
+	/**
+	 * Returns the connection pool type.
+	 * @return the pool type
+	 */
+	public abstract String getType();
+	
 	/*
 	 * Get first available connection ID.
 	 */
@@ -121,6 +127,14 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 */
 	public long getValidations() {
 		return _monitor.getCheckCount();
+	}
+	
+	/**
+	 * Returns whether stack logging is enabled when a connection is borrowed from the pool.
+	 * @return TRUE if stack logging enabled, otherwise FALSE
+	 */
+	public boolean getLogStack() {
+		return _logStack;
 	}
 
 	/**

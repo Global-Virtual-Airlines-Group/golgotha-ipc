@@ -33,6 +33,11 @@ public class JDBCPool extends ConnectionPool<Connection> {
 		super(maxSize, name, JDBCPool.class);
 		DriverManager.setLoginTimeout(2);
 	}
+	
+	@Override
+	public String getType() {
+		return "JDBC";
+	}
 
 	/**
 	 * Updates the database auto-commit setting.
