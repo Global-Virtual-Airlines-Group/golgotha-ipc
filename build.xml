@@ -3,8 +3,8 @@
 <project default="compile" xmlns:if="ant:if">
 	<!-- Compile shared classes -->
 	<target name="compile" description="Build shared library">
-		<property name="v.major" value="2" />
-		<property name="v.minor" value="99" />
+		<property name="v.major" value="3" />
+		<property name="v.minor" value="00" />
 
 		<tstamp>
 			<format property="build_utc" timezone="Etc/Greenwich" pattern="yyyyMMdd HHmmss Z" />
