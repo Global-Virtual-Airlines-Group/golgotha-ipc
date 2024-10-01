@@ -188,8 +188,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		ConnectionPoolEntry<T> cpe = _idleCons.poll();
 		if ((cpe != null) && cpe.isActive()) {
 			T c = cpe.reserve(_logStack);
-			if (!cpe.isDynamic())
-				log.info("{} reserve {} - {}", _name, cpe, _idleCons);
+			log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
 			if (!cpe.isActive())
 				_expandCount.increment();
 			
@@ -344,7 +343,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			addIdle(cpe);
 
 		// Return usage time
-		log.info("{} free {} - {} ({}ms)", _name, cpe, _idleCons, Long.valueOf(useTime));
+		log.debug("{} free {} - {} ({}ms)", _name, cpe, _idleCons, Long.valueOf(useTime));
 		return useTime;
 	}
 
