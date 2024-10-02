@@ -34,6 +34,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	private long _startTime;
 	private long _lastUsed;
 	
+	private int _connectCount;
 	private long _useCount;
 	private long _sessionUseCount;
 
@@ -129,6 +130,13 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 			log.warn("Attempting to re-free Connection {}", Integer.valueOf(_id));
 		
 		return wasFree;
+	}
+	
+	/**
+	 * Adjusts connection metrics.
+	 */
+	protected void markConnected() {
+		_connectCount++;
 	}
 
 	/**
@@ -253,6 +261,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	public long getUseTime() {
 		return inUse() ? (System.currentTimeMillis() - _startTime) : _useTime;
+	}
+	
+	/**
+    * Returns the number of times this Connection slot has reconnected to the data source.
+    * @return the number of reconnections
+    */
+	public int getConnectCount() {
+		return _connectCount;
 	}
 
 	/**

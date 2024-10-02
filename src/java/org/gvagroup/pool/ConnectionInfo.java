@@ -19,6 +19,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
 	private final boolean _isDynamic;
 	private final boolean _isConnected;
 	private final boolean _inUse;
+	private final int _connectCount;
 	private final long _useCount;
 	private final long _sessionUseCount;
 	private final long _totalUse;
@@ -38,6 +39,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
       _isConnected = entry.isConnected();
       _inUse = entry.inUse();
       _useCount = entry.getUseCount();
+      _connectCount = entry.getConnectCount();
       _sessionUseCount = entry.getSessionUseCount();
       _totalUse = entry.getTotalUseTime();
       _currentUse = entry.getUseTime();
@@ -92,6 +94,14 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
     */
    public boolean getDynamic() {
 	   return _isDynamic;
+   }
+   
+   /**
+    * Returns the number of times this Connection slot has reconnected to the data source.
+    * @return the number of reconnections
+    */
+   public int getConnectCount() {
+	   return _connectCount;
    }
    
    /**

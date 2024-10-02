@@ -60,6 +60,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 		JDBCConnectionWrapper cw = new JDBCConnectionWrapper(con, this);
 		cw.setAutoCommit(_autoCommit);
 		setWrapper(cw);
+		markConnected();
 	}
 	
 	@Override

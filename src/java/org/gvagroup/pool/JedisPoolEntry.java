@@ -57,6 +57,7 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 		Jedis j = get();
 		j.select(Integer.parseInt(_props.getProperty("db", "0")));
 		j.clientSetname(String.format("%s-%d", _props.getProperty("poolName", "jedis"), Integer.valueOf(getID())));
+		markConnected();
 	}
 	
 	@Override
