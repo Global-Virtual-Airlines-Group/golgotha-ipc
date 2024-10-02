@@ -6,6 +6,7 @@ import java.util.*;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 
 import org.apache.logging.log4j.*;
 
@@ -24,6 +25,10 @@ import org.gvagroup.tomcat.SharedWorker;
 public abstract class ConnectionPool<T extends AutoCloseable> implements Serializable, AutoCloseable, org.gvagroup.pool.Recycler<T> {
 
 	private static final long serialVersionUID = 8550734573930973176L;
+	
+	private transient final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock();
+	private transient final Lock _r = _lock.readLock();
+	private transient final Lock _w = _lock.writeLock();
 
 	/**
 	 * Pool logger.
@@ -200,23 +205,30 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	public T getConnection() throws ConnectionPoolException {
 
 		// Try and get an idle connection from the pool
-		ConnectionPoolEntry<T> cpe = _idleCons.poll();
-		if ((cpe != null) && cpe.isActive()) {
-			T c = cpe.reserve(_logStack);
-			log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
-			if (!cpe.isActive())
-				_expandCount.increment();
-			
-			_totalRequests.increment();
-			return c;
-		} else if ((cpe != null) && !cpe.isActive()) {
-			log.warn("{} retrieved idle inactive Connection {}", _name, cpe);
-			_errorCount.increment();
-			cpe = null;
+		ConnectionPoolEntry<T> cpe = null;
+		try {
+			_r.lock();
+			cpe = _idleCons.poll();
+			if ((cpe != null) && cpe.isActive()) {
+				T c = cpe.reserve(_logStack);
+				log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
+				if (!cpe.isActive())
+					_expandCount.increment();
+				
+				_totalRequests.increment();
+				return c;
+			} else if ((cpe != null) && !cpe.isActive()) {
+				log.warn("{} retrieved idle inactive Connection {}", _name, cpe);
+				_errorCount.increment();
+				cpe = null;
+			}
+		} finally {
+			_r.unlock();
 		}
 
 		// Is the pool at its max size? If not, then create a new connection and add it to the pool
-		synchronized (_cons) {
+		try {
+			_w.lock();
 			Optional<ConnectionPoolEntry<T>> nextAvailable = _cons.values().stream().filter(pe -> !pe.inUse()).findFirst();
 			if (!nextAvailable.isPresent() && (_cons.size() < _poolMaxSize)) {
 				try {
@@ -236,10 +248,14 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 						throw new ConnectionPoolException(e);
 					}
 				} else {
-					log.warn("{} active Connection {} not in idle list - {}", _name, cpe, cpe.getStackInfo().getCaller());
+					// FIXME: This may have been returned to the pool between lines 203 and 220
+					long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
+					log.warn("{} active ({} for {}ms) Connection {} not in idle list - {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller());
 					_errorCount.increment();
 				}
 			}
+		} finally {
+			_w.unlock();
 		}
 
 		// Return back the connection
@@ -253,6 +269,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		// Wait for a new connection to become available, since we cannot expand
 		long waitTime = System.nanoTime();
 		try {
+			_r.lock();
 			cpe = _idleCons.poll(975, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				_waitCount.increment();		
@@ -261,6 +278,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
 		} finally {
+			_r.unlock();
 			waitTime = System.nanoTime() - waitTime;
 			long ms = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
 			_maxWaitTime = Math.max(_maxWaitTime, ms);
@@ -324,22 +342,20 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			_monitor.execute();
 		}
 
-		// Free the connection and reset last use
-		cpe.free();
+		// Get use time
 		long useTime = cpe.getUseTime();
 		_maxBorrowTime = Math.max(_maxBorrowTime, useTime);
 		if (isForced)
 			log.error("{} forced connection close - Connection {}", _name, cpe);
 
 		// If this is a stale dynamic connection, such it down
-		if (cpe.isDynamic() && (useTime > getStaleTime())) {
+		if (cpe.isDynamic() && (isForced || (useTime > getStaleTime()))) {
 			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic Connection {} after {} ms", cpe, Long.valueOf(useTime));
+			cpe.free();
 			cpe.close();
 			_errorCount.increment();
 			return useTime;
 		} else if (!cpe.isDynamic()) {
-			log.debug("{} released Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
-
 			// Check if we need to restart
 			if (isForced || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
 				log.warn("{} restarting Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
@@ -354,7 +370,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			
 			if (cpe.isConnected())
 				addIdle(cpe);
-		} else
+		} else if (cpe.isConnected())
 			addIdle(cpe);
 
 		// Return usage time
@@ -410,20 +426,21 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	}
 	
 	/**
-	 * Adds a connection entry back to the list of idle connections.
+	 * Frees a connection entry and returns it back to the list of idle connections. We do the free() here to ensure this occurs when we have the write lock.
 	 * @param cpe the ConnectionPoolEntry
 	 * @return TRUE if the connection was already present, otherwise FALSE
 	 */
 	boolean addIdle(ConnectionPoolEntry<T> cpe) {
-		if (cpe.inUse()) {
-			log.warn("{} attempting to return active Connection {}", _name, cpe);
-			return false;
-		}
-		
-		synchronized (_cons) {
+		try {
+			_w.lock();
+			if (cpe.inUse())
+				cpe.free();
+				
 			boolean hasCon = _idleCons.remove(cpe);
 			_idleCons.add(cpe);
 			return hasCon;
+		} finally {
+			_w.unlock();
 		}
 	}
 	
@@ -433,7 +450,12 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @return TRUE if the connection was not present, otherwise FALSE
 	 */
 	boolean removeIdle(ConnectionPoolEntry<T> cpe) {
-		return !_idleCons.remove(cpe);
+		try {
+			_w.lock();
+			return !_idleCons.remove(cpe);
+		} finally {
+			_w.unlock();
+		}
 	}
 	
 	/**
