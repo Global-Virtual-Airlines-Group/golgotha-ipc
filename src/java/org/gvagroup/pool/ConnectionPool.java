@@ -248,10 +248,12 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 						throw new ConnectionPoolException(e);
 					}
 				} else {
-					// FIXME: This may have been returned to the pool between lines 203 and 220
+					// This may have been returned to the pool between lines 211 and 232
 					long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
-					log.warn("{} active ({} for {}ms) Connection {} not in idle list - {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller());
-					_errorCount.increment();
+					if (useDelta > 5) {
+						log.warn("{} active ({} for {}ms) Connection {} not in idle list - {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller());
+						_errorCount.increment();
+					}
 				}
 			}
 		} finally {
