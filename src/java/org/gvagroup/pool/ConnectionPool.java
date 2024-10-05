@@ -340,7 +340,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		long waitTime = System.nanoTime();
 		try {
 			_r.lock();
-			cpe = _idleCons.poll(975, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(500, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
@@ -358,13 +358,17 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		
 		// Dump stack if this is our first error in a while
 		long now = System.currentTimeMillis();
-		if ((now - _lastPoolFullTime) > 90_000) {
-			log.error("Pool Full, idleCons = {}", _idleCons);
-			synchronized (_cons) {
+		if ((now - _lastPoolFullTime) > 5_000) {
+			try {
+				_r.lock();
+				log.error("Pool Full, idleCons = {}", _idleCons);
 				for (Map.Entry<Integer, ConnectionPoolEntry<T>> me : _cons.entrySet()) {
 					cpe = me.getValue();
-					log.atError().withThrowable(cpe.getStackInfo()).log("Connection {} connected = {}, active = {}", me.getKey(), Boolean.valueOf(cpe.isConnected()), Boolean.valueOf(cpe.isActive()));
+					long activeTime = now - cpe.getLastUseTime();
+					log.atError().withThrowable(cpe.getStackInfo()).log("Connection {} connected = {}, active = {} ({}ms)", me.getKey(), Boolean.valueOf(cpe.isConnected()), Boolean.valueOf(cpe.isActive()), Long.valueOf(activeTime));
 				}
+			} finally {
+				_r.unlock();
 			}
 		}
 		
