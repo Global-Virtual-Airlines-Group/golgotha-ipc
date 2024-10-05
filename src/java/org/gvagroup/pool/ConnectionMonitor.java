@@ -1,13 +1,6 @@
 // Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2020, 2022, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
-import java.util.*;
-import java.sql.*;
-import java.time.Instant;
-import java.util.stream.Collectors;
-
-import org.apache.logging.log4j.*;
-
 import org.gvagroup.tomcat.SharedTask;
 
 /**
@@ -22,17 +15,12 @@ class ConnectionMonitor<T extends AutoCloseable> implements SharedTask {
 
 	private static final long serialVersionUID = -5370602877805586773L;
 	
-	private static transient final Logger log = LogManager.getLogger(ConnectionMonitor.class);
-	private static transient final Collection<String> _sqlStatus = List.of("08003", "08S01");
-
 	private transient final ConnectionPool<T> _pool;
 	private final String _name;
 	private final int _sleepTime;
 	
 	private long _poolCheckCount;
-	private long _lastPoolCheck;
 	private boolean _isStopped = false;
-	private boolean _suppressFreeCount = false;
 
 	/**
 	 * Creates a new Connection Monitor.
@@ -58,27 +46,11 @@ class ConnectionMonitor<T extends AutoCloseable> implements SharedTask {
 	}
 
 	/**
-	 * Returns the size of the connection pool being monitored.
-	 * @return the size of the pool
-	 */
-	public int size() {
-		return _pool.getSize();
-	}
-	
-	/**
 	 * Returns the number of times the connection pool has been validated.
 	 * @return the number of validation runs
 	 */
 	public long getCheckCount() {
 		return _poolCheckCount;
-	}
-	
-	/**
-	 * Returns the last time the connection pool was validated.
-	 * @return the date/time of the last validation run, or null if never
-	 */
-	public java.time.Instant getLastCheck() {
-		return (_lastPoolCheck == 0) ? null : Instant.ofEpochMilli(_lastPoolCheck);
 	}
 	
 	@Override
@@ -89,77 +61,7 @@ class ConnectionMonitor<T extends AutoCloseable> implements SharedTask {
 	@Override
 	public synchronized void execute() {
 		_poolCheckCount++;
-		_lastPoolCheck = System.currentTimeMillis();
-		log.debug("Checking Connection Pool");
-		
-		// Check entries and idle entries. Number of free should match idle
-		Collection<ConnectionPoolEntry<T>> entries = _pool.getEntries();
-		Collection<ConnectionPoolEntry<T>> idleEntries = _pool.getIdle();
-		Collection<ConnectionPoolEntry<T>> freeEntries = entries.stream().filter(cpe -> cpe.isActive() && !cpe.inUse()).collect(Collectors.toList());
-		long idleCount = idleEntries.stream().filter(ConnectionPoolEntry::isActive).count();
-		if ((freeEntries.size() != idleEntries.size()) || (idleCount != idleEntries.size())) {
-			if (!_suppressFreeCount)
-				log.warn("{} Free = {} / {}, IdleCount = {}, Idle = {} / {}", _name, Long.valueOf(freeEntries.size()), freeEntries, Long.valueOf(idleCount), Integer.valueOf(idleEntries.size()), idleEntries);
-			
-			_suppressFreeCount = true;
-		} else
-			_suppressFreeCount = false;
-
-		// Loop through the entries
-		for (ConnectionPoolEntry<T> cpe : entries) {
-			boolean isStale = (cpe.getUseTime() > _pool.getStaleTime());
-			if (isStale && cpe.isActive()) {
-				long useTime = cpe.getUseTime();
-				long lastActiveInterval = _lastPoolCheck - cpe.getWrapper().getLastUse();
-				if ((useTime - lastActiveInterval) > 15_000)
-					log.warn("Connection reserved for {}ms, last activity {}ms ago", Long.valueOf(cpe.getUseTime()), Long.valueOf(lastActiveInterval));
-				
-				isStale = (lastActiveInterval > 45_000);
-			}
-
-			// Check if the entry has timed out
-			if (!cpe.isActive()) {
-				if (cpe.inUse()) {
-					log.warn("Inactive connection {} in use", cpe);
-					cpe.close(); // Resets last use
-				} else
-					log.debug("Skipping inactive connection {}", cpe);
-			} else if (cpe.inUse() && isStale) {
-				@SuppressWarnings("unchecked")
-				long useTime = _pool.release((T) cpe.getWrapper(), true);
-				log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
-			} else if (cpe.isDynamic() && !cpe.inUse()) {
-				if (isStale)
-					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale dynamic Connection {}", _name, cpe);
-				else
-					log.info("{} releasing dynamic Connection {}", _name, cpe);
-				
-				cpe.close();
-				boolean wasNotIdle = _pool.removeIdle(cpe);
-				if (wasNotIdle)
-					log.warn("{} attempted to remove non-idle connection {}", _name, cpe);
-			} else if (cpe.inUse())
-				log.info("Connection {} in use", cpe);
-			else if (!cpe.inUse() && !cpe.checkConnection()) {
-				log.warn("Reconnecting Connection {}", cpe);
-				cpe.close();
-				_pool.removeIdle(cpe);
-
-				try {
-					cpe.connect();
-					boolean wasIdle = _pool.addIdle(cpe);
-					if (wasIdle)
-						log.warn("{} returned already idle connection {}", cpe);
-				} catch (SQLException se) {
-					if (_sqlStatus.contains(se.getSQLState()))
-						log.warn("Transient SQL Error - {}", se.getSQLState());
-					else
-						log.warn("Unknown SQL Error code - {}", se.getSQLState());
-				} catch (Exception e) {
-					log.atError().withThrowable(e).log("Error reconnecting {}", cpe);
-				}
-			}
-		}
+		_pool.validate();
 	}
 
 	@Override

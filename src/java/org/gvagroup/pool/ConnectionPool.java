@@ -2,11 +2,14 @@
 package org.gvagroup.pool;
 
 import java.io.*;
+import java.sql.SQLException;
+import java.time.Instant;
 import java.util.*;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.*;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.*;
 
@@ -46,6 +49,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private final LongAdder _errorCount = new LongAdder();
 	private boolean _logStack;
 	private long _lastPoolFullTime;
+	private long _lastValidationTime;
 	
 	private long _maxWaitTime;
 	private long _maxBorrowTime;
@@ -146,10 +150,74 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	/**
 	 * Returns the last time the connection pool was validated.
 	 * @return the date/time of the last validation run
-	 * @see ConnectionMonitor#getLastCheck()
 	 */
 	public java.time.Instant getLastValidation() {
-		return _monitor.getLastCheck();
+		return (_lastValidationTime == 0) ? null : Instant.ofEpochMilli(_lastValidationTime);
+	}
+	
+
+	/**
+	 * Returns the total number of connections handed out by the Connection Pool.
+	 * @return the number of connection reservations
+	 */
+	public long getTotalRequests() {
+		return _totalRequests.longValue();
+	}
+
+	/**
+	 * Returns the number of times the Connection Pool has been full and a request failed.
+	 * @return the number of ConnectionPoolFullExceptions thrown
+	 */
+	public long getFullCount() {
+		return _fullCount.longValue();
+	}
+	
+	/**
+	 * Returns the number of times the Connection Pool has detected a state error.
+	 * @return the number of state errors
+	 */
+	public long getErrorCount() {
+		return _fullCount.longValue();
+	}
+
+	/**
+	 * Returns the number of times the Connection Pool has been expanded and a dynamic connection returned.
+	 * @return the number of times the Connection Pool was expanded
+	 */
+	public long getExpandCount() {
+		return _expandCount.longValue();
+	}
+
+	/**
+	 * Returns the number of times that a thread has waited for a connection to become available.
+	 * @return the number of times a thread has waited
+	 */
+	public long getWaitCount() {
+		return _waitCount.longValue();
+	}
+	
+	/**
+	 * Returns the maximum wait time for a connection.
+	 * @return the maximum time in milliseconds
+	 */
+	public long getMaxWaitTime() {
+		return _maxWaitTime;
+	}
+	
+	/**
+	 * Returns the maximum borrow time for a connection.
+	 * @return the maximum time a connection was borrowed in milliseconds
+	 */
+	public long getMaxBorrowTime() {
+		return _maxBorrowTime;
+	}
+	
+	/**
+	 * Resets the maximum borrow and wait times.
+	 */
+	public void resetMaxTimes() {
+		_maxWaitTime = 0;
+		_maxBorrowTime = 0;
 	}
 
 	/**
@@ -410,21 +478,25 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		_monitor.stop();
 
 		// Disconnect the connections
-		for (Iterator<ConnectionPoolEntry<T>> i = _cons.values().iterator(); i.hasNext();) {
-			ConnectionPoolEntry<T> cpe = i.next();
-			if (cpe.inUse()) {
-				try {
-					log.warn("Connection {} in use, waiting", cpe);
-					Thread.sleep(50);
-				} catch (InterruptedException ie) { /* empty */ }
-			}
+		try {
+			_w.lock();
+			for (Iterator<ConnectionPoolEntry<T>> i = _cons.values().iterator(); i.hasNext();) {
+				ConnectionPoolEntry<T> cpe = i.next();
+				if (cpe.inUse()) {
+					try {
+						log.warn("Connection {} in use, waiting", cpe);
+						Thread.sleep(50);
+					} catch (InterruptedException ie) { /* empty */ }
+				}
 			
-			log.log(cpe.inUse() ? Level.WARN : Level.INFO, "Closing {} Connection {}", _name, cpe);
-			cpe.close();
-			i.remove();
+				log.log(cpe.inUse() ? Level.WARN : Level.INFO, "Closing {} Connection {}", _name, cpe);
+				cpe.close();
+				i.remove();
+			}
+		} finally {
+			_w.unlock();
+			log.info("Shut down {}", _name);	
 		}
-		
-		log.info("Shut down {}", _name);
 	}
 	
 	/**
@@ -465,92 +537,84 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @return a Collection of ConnectionInfo entries
 	 */
 	public Collection<ConnectionInfo> getPoolInfo() {
-		Collection<ConnectionInfo> results = new ArrayList<ConnectionInfo>(_cons.size() + 2);
-		_cons.values().stream().map(ConnectionInfo::new).forEach(results::add);
-		return results;
-	}
-
-	/**
-	 * Returns all connection pool entries, for use by the {@link ConnectionMonitor}.
-	 * @return a Collection of ConnectionPoolEntry beans
-	 * @see ConnectionMonitor
-	 * @see ConnectionPool#getIdle()
-	 */
-	Collection<ConnectionPoolEntry<T>> getEntries() {
-		return new ArrayList<ConnectionPoolEntry<T>>(_cons.values());
+		try {
+			_r.lock();
+			return  _cons.values().stream().map(ConnectionInfo::new).collect(Collectors.toList());
+		} finally {
+			_r.unlock();
+		}
 	}
 	
 	/**
-	 * Returns idle connection pool entries, for use by the {@link ConnectionMonitor}.
-	 * @return a Collection of idle ConnectionPoolEntry beans
-	 * @see ConnectionMonitor
-	 * @see ConnectionPool#getEntries()
+	 * Validates the connection pool. This is called by {@link ConnectionMonitor}.
 	 */
-	Collection<ConnectionPoolEntry<T>> getIdle() {
-		return new ArrayList<ConnectionPoolEntry<T>>(_idleCons);
-	}
+	void validate() {
+		try {
+			_lastValidationTime = System.currentTimeMillis();
+			_w.lock();
+			
+			// Check entries and idle entries. Number of free should match idle
+			Collection<ConnectionPoolEntry<T>> entries = _cons.values();
+			Collection<ConnectionPoolEntry<T>> freeEntries = entries.stream().filter(cpe -> cpe.isActive() && !cpe.inUse()).collect(Collectors.toList());
+			long idleCount = _idleCons.stream().filter(ConnectionPoolEntry::isActive).count();
+			if ((freeEntries.size() != _idleCons.size()) || (idleCount != _idleCons.size()))
+				log.warn("{} Free = {} / {}, IdleCount = {}, Idle = {} / {}", _name, Long.valueOf(freeEntries.size()), freeEntries, Long.valueOf(idleCount), Integer.valueOf(_idleCons.size()), _idleCons);
 
-	/**
-	 * Returns the total number of connections handed out by the Connection Pool.
-	 * @return the number of connection reservations
-	 */
-	public long getTotalRequests() {
-		return _totalRequests.longValue();
-	}
+			
+			// Loop through the entries
+			for (ConnectionPoolEntry<T> cpe : entries) {
+				boolean isStale = (cpe.getUseTime() > getStaleTime());
+				if (isStale && cpe.isActive()) {
+					long useTime = cpe.getUseTime();
+					long lastActiveInterval = _lastValidationTime - cpe.getWrapper().getLastUse();
+					if ((useTime - lastActiveInterval) > 15_000)
+						log.warn("Connection reserved for {}ms, last activity {}ms ago", Long.valueOf(cpe.getUseTime()), Long.valueOf(lastActiveInterval));
+					
+					isStale = (lastActiveInterval > 45_000);
+				}
 
-	/**
-	 * Returns the number of times the Connection Pool has been full and a request failed.
-	 * @return the number of ConnectionPoolFullExceptions thrown
-	 */
-	public long getFullCount() {
-		return _fullCount.longValue();
-	}
-	
-	/**
-	 * Returns the number of times the Connection Pool has detected a state error.
-	 * @return the number of state errors
-	 */
-	public long getErrorCount() {
-		return _fullCount.longValue();
-	}
+				// Check if the entry has timed out
+				if (!cpe.isActive()) {
+					if (cpe.inUse()) {
+						log.warn("Inactive connection {} in use", cpe);
+						cpe.close(); // Resets last use
+					} else
+						log.debug("Skipping inactive connection {}", cpe);
+				} else if (cpe.inUse() && isStale) {
+					@SuppressWarnings("unchecked")
+					long useTime = release((T) cpe.getWrapper(), true);
+					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
+				} else if (cpe.isDynamic() && !cpe.inUse()) {
+					if (isStale)
+						log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale dynamic Connection {}", _name, cpe);
+					else
+						log.info("{} releasing dynamic Connection {}", _name, cpe);
+					
+					cpe.close();
+					boolean wasNotIdle = removeIdle(cpe);
+					if (wasNotIdle)
+						log.warn("{} attempted to remove non-idle connection {}", _name, cpe);
+				} else if (cpe.inUse())
+					log.info("Connection {} in use", cpe);
+				else if (!cpe.inUse() && !cpe.checkConnection()) {
+					log.warn("Reconnecting Connection {}", cpe);
+					cpe.close();
+					removeIdle(cpe);
 
-	/**
-	 * Returns the number of times the Connection Pool has been expanded and a dynamic connection returned.
-	 * @return the number of times the Connection Pool was expanded
-	 */
-	public long getExpandCount() {
-		return _expandCount.longValue();
-	}
-
-	/**
-	 * Returns the number of times that a thread has waited for a connection to become available.
-	 * @return the number of times a thread has waited
-	 */
-	public long getWaitCount() {
-		return _waitCount.longValue();
-	}
-	
-	/**
-	 * Returns the maximum wait time for a connection.
-	 * @return the maximum time in milliseconds
-	 */
-	public long getMaxWaitTime() {
-		return _maxWaitTime;
-	}
-	
-	/**
-	 * Returns the maximum borrow time for a connection.
-	 * @return the maximum time a connection was borrowed in milliseconds
-	 */
-	public long getMaxBorrowTime() {
-		return _maxBorrowTime;
-	}
-	
-	/**
-	 * Resets the maximum borrow and wait times.
-	 */
-	public void resetMaxTimes() {
-		_maxWaitTime = 0;
-		_maxBorrowTime = 0;
+					try {
+						cpe.connect();
+						boolean wasIdle = addIdle(cpe);
+						if (wasIdle)
+							log.warn("{} returned already idle connection {}", cpe);
+					} catch (SQLException se) {
+						log.warn("Unknown SQL Error code - {}", se.getSQLState());
+					} catch (Exception e) {
+						log.atError().withThrowable(e).log("Error reconnecting {}", cpe);
+					}
+				}
+			}
+		} finally {
+			_w.unlock();
+		}
 	}
 }
