@@ -29,7 +29,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 
 	private static final long serialVersionUID = 8550734573930973176L;
 	
-	private transient final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock();
+	private transient final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock(true);
 	private final Lock _r = _lock.readLock();
 	private final Lock _w = _lock.writeLock();
 
@@ -276,7 +276,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		ConnectionPoolEntry<T> cpe = null;
 		try {
 			_r.lock();
-			cpe = _idleCons.poll();
+			cpe = _idleCons.poll(10, TimeUnit.MILLISECONDS);
 			if ((cpe != null) && cpe.isActive()) {
 				T c = cpe.reserve(_logStack);
 				log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
@@ -290,6 +290,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				_errorCount.increment();
 				cpe = null;
 			}
+		} catch (InterruptedException ie) {
+			log.warn("Interrupted waiting for idle connection");
 		} finally {
 			_r.unlock();
 		}
@@ -510,10 +512,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 */
 	boolean addIdle(ConnectionPoolEntry<T> cpe) {
 		try {
-			_w.lock();
-			if (cpe.inUse())
-				cpe.free();
-				
+			if (cpe.inUse()) cpe.free();
+			_w.lock();	
 			boolean hasCon = _idleCons.remove(cpe);
 			_idleCons.add(cpe);
 			return hasCon;
