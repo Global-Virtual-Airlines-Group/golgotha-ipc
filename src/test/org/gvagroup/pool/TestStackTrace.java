@@ -11,5 +11,10 @@ public class TestStackTrace extends TestCase {
 		assertNotNull(st);
 		String caller = st.getCaller();
 		assertTrue(caller.startsWith("org.gvagroup.pool.StackUtils.generate"));
+		
+		st = StackUtils.generate(true);
+		assertNotNull(st);
+		caller = st.getCaller();
+		assertTrue(caller.startsWith("org.gvagroup.pool.TestStackTrace.testCaller"));
 	}
 }
