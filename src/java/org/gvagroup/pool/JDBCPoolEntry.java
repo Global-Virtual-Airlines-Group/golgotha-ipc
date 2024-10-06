@@ -72,7 +72,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 		try {
 			Connection c = get();
 			if ((c != null) && (c.getAutoCommit() != _autoCommit)) {
-				log.info("Resetting autoCommit to {}", Boolean.valueOf(_autoCommit));
+				log.debug("Resetting autoCommit to {}", Boolean.valueOf(_autoCommit));
 				c.setAutoCommit(_autoCommit);
 				c.setTransactionIsolation(DEFAULT_SERIALIZATION);
 			}
@@ -111,7 +111,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 		Connection c = get();
 		if (!c.getAutoCommit()) {
 			c.rollback();
-			log.info("Rolling back transactions");
+			log.debug("Rolling back transactions");
 		}
 	}
 
