@@ -27,7 +27,7 @@ class StackUtils {
 		if (removeCurrentPackage) {
 			StackTraceElement[] stk = st.getStackTrace();
 			StackTraceElement ste = stk[0]; int idx = 0;
-			while (ste.getClassName().contains(".pool.") && (idx < stk.length))
+			while (ste.getClassName().contains(".pool.") && ste.getClassName().contains(".jdbc.") && ste.getClassName().contains(".util.") && (idx < stk.length))
 				ste = stk[++idx];
 
 			if (idx < stk.length) {
