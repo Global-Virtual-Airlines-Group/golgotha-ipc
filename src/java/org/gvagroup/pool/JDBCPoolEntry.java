@@ -87,11 +87,10 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 	@Override
 	Connection reserve(boolean logStack) {
 		checkState();
+		markUsed();
 		if (logStack)
 			generateStackTrace();
 
-		// Mark the connection as in use, and return the SQL connection
-		markUsed();
 		return (Connection) getWrapper();
 	}
 	

@@ -63,11 +63,10 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	@Override
 	Jedis reserve(boolean logStack) {
 		checkState();
+		markUsed();
 		if (logStack)
 			generateStackTrace();
 		
-		// Mark the connection as in use, and return the Jedis connection
-		markUsed();
 		return getWrapper().get();
 	}
 
