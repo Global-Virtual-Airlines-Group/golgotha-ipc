@@ -326,23 +326,23 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					}
 				}
 			}
+			
+			// Return back the connection
+			if (cpe != null) {
+				T c = cpe.reserve(_logStack);
+				_totalRequests.increment();
+				_expandCount.increment();
+				return c;
+			}
 		} finally {
 			_w.unlock();
-		}
-
-		// Return back the connection
-		if (cpe != null) {
-			T c = cpe.reserve(_logStack);
-			_totalRequests.increment();
-			_expandCount.increment();
-			return c;
 		}
 
 		// Wait for a new connection to become available, since we cannot expand
 		long waitTime = System.nanoTime();
 		try {
 			_r.lock();
-			cpe = _idleCons.poll(500, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(250, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
