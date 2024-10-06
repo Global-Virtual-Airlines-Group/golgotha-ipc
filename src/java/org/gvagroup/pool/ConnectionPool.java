@@ -513,8 +513,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 */
 	boolean addIdle(ConnectionPoolEntry<T> cpe) {
 		try {
+			_w.lock();
 			if (cpe.inUse()) cpe.free();
-			_w.lock();	
 			boolean hasCon = _idleCons.remove(cpe);
 			_idleCons.add(cpe);
 			return hasCon;
@@ -564,7 +564,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			long idleCount = _idleCons.stream().filter(ConnectionPoolEntry::isActive).count();
 			if ((freeEntries.size() != _idleCons.size()) || (idleCount != _idleCons.size()))
 				log.warn("{} Free = {} / {}, IdleCount = {}, Idle = {} / {}", _name, Long.valueOf(freeEntries.size()), freeEntries, Long.valueOf(idleCount), Integer.valueOf(_idleCons.size()), _idleCons);
-
 			
 			// Loop through the entries
 			for (ConnectionPoolEntry<T> cpe : entries) {
@@ -596,7 +595,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 						log.info("{} releasing dynamic Connection {}", _name, cpe);
 					
 					cpe.close();
-					boolean wasNotIdle = removeIdle(cpe);
+					boolean wasNotIdle = !_idleCons.remove(cpe);
 					if (wasNotIdle)
 						log.warn("{} attempted to remove non-idle connection {}", _name, cpe);
 				} else if (cpe.inUse())
