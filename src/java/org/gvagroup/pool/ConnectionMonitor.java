@@ -66,6 +66,6 @@ class ConnectionMonitor<T extends AutoCloseable> implements SharedTask {
 
 	@Override
 	public String toString() {
-		return String.format("%s JDBC Connection Monitor", _name);
+		return String.format("%s %s Connection Monitor", _name, _pool.getType());
 	}
 }
