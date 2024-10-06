@@ -177,7 +177,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @return the number of state errors
 	 */
 	public long getErrorCount() {
-		return _fullCount.longValue();
+		return _errorCount.longValue();
 	}
 
 	/**
@@ -276,7 +276,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		ConnectionPoolEntry<T> cpe = null;
 		try {
 			_r.lock();
-			cpe = _idleCons.poll(10, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(5, TimeUnit.MILLISECONDS);
 			if ((cpe != null) && cpe.isActive()) {
 				T c = cpe.reserve(_logStack);
 				log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
@@ -320,7 +320,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				} else {
 					// This may have been returned to the pool between lines 211 and 232
 					long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
-					if (useDelta > 5) {
+					if (useDelta > 10) {
 						log.warn("{} active ({} for {}ms) Connection {} not in idle list - {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller());
 						_errorCount.increment();
 					}
