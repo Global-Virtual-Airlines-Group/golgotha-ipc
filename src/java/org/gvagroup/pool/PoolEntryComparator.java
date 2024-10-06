@@ -17,7 +17,7 @@ class PoolEntryComparator implements java.util.Comparator<ConnectionPoolEntry<?>
 		if ((tmpResult == 0) && cpe1.isDynamic())
 			return Integer.compare(cpe1.getID(), cpe2.getID());
 		if (tmpResult == 0)
-			tmpResult = Long.compare(cpe1.getLastUseTime(), cpe2.getLastUseTime());
+			tmpResult = Long.compare(cpe1.getUseCount(), cpe2.getUseCount());
 		
 		return (tmpResult == 0) ? Integer.compare(cpe1.getID(), cpe2.getID()) : tmpResult;
 	}
