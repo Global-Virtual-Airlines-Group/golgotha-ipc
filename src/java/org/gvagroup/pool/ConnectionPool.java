@@ -278,7 +278,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			_r.lock();
 			cpe = _idleCons.poll();
 			if (cpe != null) {
-				if (cpe.isActive()) {
+				if (cpe.isActive() && !cpe.inUse()) {
 					T c = cpe.reserve(_logStack);
 					log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
 					if (!cpe.isActive())
@@ -288,7 +288,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					return c;
 				}
 				
-				log.warn("{} retrieved idle inactive Connection {}", _name, cpe);
+				log.warn("{} retrieved idle/used inactive Connection {} - (idle={}, used={})", _name, cpe, Boolean.valueOf(!cpe.isActive()), Boolean.valueOf(cpe.inUse()));
 				_errorCount.increment();
 				cpe = null;
 			}
@@ -435,7 +435,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		} else if (!cpe.isDynamic()) {
 			// Check if we need to restart
 			if (isForced || isStale || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
-				log.warn("{} restarting Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
+				log.info("{} restarting Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
 				cpe.close();
 				try {
 					cpe.connect();
