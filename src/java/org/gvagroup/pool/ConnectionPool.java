@@ -425,7 +425,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			log.error("{} forced connection close - Connection {}", _name, cpe);
 
 		// If this is a stale dynamic connection, such it down
-		if (cpe.isDynamic() && (isForced || (useTime > getStaleTime()))) {
+		boolean isStale = (useTime > getStaleTime());
+		if (cpe.isDynamic() && (isForced || isStale)) {
 			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic Connection {} after {} ms", cpe, Long.valueOf(useTime));
 			cpe.free();
 			cpe.close();
@@ -433,7 +434,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			return useTime;
 		} else if (!cpe.isDynamic()) {
 			// Check if we need to restart
-			if (isForced || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
+			if (isForced || isStale || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
 				log.warn("{} restarting Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
 				cpe.close();
 				try {
@@ -574,7 +575,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					if ((useTime - lastActiveInterval) > 15_000)
 						log.warn("Connection reserved for {}ms, last activity {}ms ago", Long.valueOf(cpe.getUseTime()), Long.valueOf(lastActiveInterval));
 					
-					isStale = (lastActiveInterval > 45_000);
+					isStale = (lastActiveInterval > getStaleTime());
 				}
 
 				// Check if the entry has timed out
