@@ -33,8 +33,10 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	private long _useTime;
 	private long _startTime;
 	private long _lastUsed;
+	private long _lastChecked;
 	
 	private int _connectCount;
+	private int _checkCount;
 	private long _useCount;
 	private long _sessionUseCount;
 
@@ -158,6 +160,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		_useCount++;
 		_sessionUseCount++;
 	}
+	
+	/**
+	 * Tracks the last connection check time.
+	 */
+	protected void markChecked() {
+		_checkCount++;
+		_lastChecked = System.currentTimeMillis();
+	}
 
 	/**
 	 * Validates the connection.
@@ -270,6 +280,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	public int getConnectCount() {
 		return _connectCount;
 	}
+	
+	/**
+	 * Returns the number of times this Connection has been validated.
+	 * @return the number of checks
+	 */
+	public int getCheckCount() {
+		return _checkCount;
+	}
 
 	/**
 	 * Returns the number of times this connection has been reserved.
@@ -287,6 +305,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		return _sessionUseCount;	
 	}
 
+	/**
+	 * Returns the timestamp of this Connection's last validation.
+	 * @return the connection's last validation timestamp
+	 */
+	public long getLastCheckTime() {
+		return _lastChecked;
+	}
+	
 	/**
 	 * Returns the timestamp of this Connection's last use.
 	 * @return the connection's last use timestamp

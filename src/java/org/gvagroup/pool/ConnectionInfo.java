@@ -20,11 +20,13 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
 	private final boolean _isConnected;
 	private final boolean _inUse;
 	private final int _connectCount;
+	private final int _checkCount;
 	private final long _useCount;
 	private final long _sessionUseCount;
 	private final long _totalUse;
 	private final long _currentUse;
 	private final Instant _lastUsed;
+	private final Instant _lastChecked;
 	private final Throwable _trace;
 
    /**
@@ -39,12 +41,14 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
       _isConnected = entry.isConnected();
       _inUse = entry.inUse();
       _useCount = entry.getUseCount();
+      _checkCount = entry.getCheckCount();
       _connectCount = entry.getConnectCount();
       _sessionUseCount = entry.getSessionUseCount();
       _totalUse = entry.getTotalUseTime();
       _currentUse = entry.getUseTime();
       _trace = entry.getStackInfo();
       _lastUsed = (entry.getLastUseTime() > 0) ? Instant.ofEpochMilli(entry.getLastUseTime()) : null;
+      _lastChecked = (entry.getLastCheckTime() > 0) ? Instant.ofEpochMilli(entry.getLastCheckTime()) : null;
    }
    
    /**
@@ -121,6 +125,14 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
    }
    
    /**
+    * Returns the number of times the Connection has been validated. 
+    * @return the number of times the Connection was checked
+    */
+   public int getCheckCount() {
+	   return _checkCount;
+   }
+   
+   /**
     * Returns the total usage time for the Connection.
     * @return the total usage time in milliseconds
     */
@@ -142,6 +154,14 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
     */
    public Instant getLastUsed() {
 	   return _lastUsed;
+   }
+   
+   /**
+    * Returns the last time this connection was checked.
+    * @return the last check date/time, or null if never
+    */
+   public Instant getLastChecked() {
+	   return _lastChecked;
    }
    
    /**

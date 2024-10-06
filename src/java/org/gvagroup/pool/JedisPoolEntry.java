@@ -82,6 +82,7 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	@Override
 	boolean checkConnection() {
 		markUsed();
+		markChecked();
 		try {
 			Jedis j = get(); // Don't autoclose as the pool will do this
 			String result = j.ping();

@@ -97,6 +97,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 	
 	@Override
 	boolean checkConnection() {
+		markChecked();
 		Connection c = get();
 		try (Statement s = c.createStatement(); ResultSet rs = s.executeQuery(_validationQuery)) {
 			return rs.next();
