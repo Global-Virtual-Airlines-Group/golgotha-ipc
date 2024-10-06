@@ -29,7 +29,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 
 	private static final long serialVersionUID = 8550734573930973176L;
 	
-	private transient final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock(true);
+	private transient final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock(false); // unfair scheduling to give writer priority
 	private final Lock _r = _lock.readLock();
 	private final Lock _w = _lock.writeLock();
 
