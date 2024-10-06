@@ -276,22 +276,22 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		ConnectionPoolEntry<T> cpe = null;
 		try {
 			_r.lock();
-			cpe = _idleCons.poll(5, TimeUnit.MILLISECONDS);
-			if ((cpe != null) && cpe.isActive()) {
-				T c = cpe.reserve(_logStack);
-				log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
-				if (!cpe.isActive())
-					_expandCount.increment();
+			cpe = _idleCons.poll();
+			if (cpe != null) {
+				if (cpe.isActive()) {
+					T c = cpe.reserve(_logStack);
+					log.debug("{} reserve {} - {}", _name, cpe, _idleCons);
+					if (!cpe.isActive())
+						_expandCount.increment();
 				
-				_totalRequests.increment();
-				return c;
-			} else if ((cpe != null) && !cpe.isActive()) {
+					_totalRequests.increment();
+					return c;
+				}
+				
 				log.warn("{} retrieved idle inactive Connection {}", _name, cpe);
 				_errorCount.increment();
 				cpe = null;
 			}
-		} catch (InterruptedException ie) {
-			log.warn("Interrupted waiting for idle connection");
 		} finally {
 			_r.unlock();
 		}
