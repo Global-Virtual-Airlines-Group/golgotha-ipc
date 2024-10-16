@@ -30,7 +30,7 @@ class StackUtils {
 			while ((ste.getClassName().contains(".pool.") || ste.getClassName().contains(".jdbc.") || ste.getClassName().contains(".util.")) && (idx < stk.length))
 				ste = stk[++idx];
 
-			if (idx < stk.length) {
+			if ((idx < stk.length) && (idx > 0)) {
 				StackTraceElement[] nstk = new StackTraceElement[stk.length - idx];
 				System.arraycopy(stk, idx, nstk, 0, stk.length - idx);
 				st.setStackTrace(nstk);
