@@ -4,7 +4,7 @@
 	<!-- Compile shared classes -->
 	<target name="compile" description="Build shared library">
 		<property name="v.major" value="3" />
-		<property name="v.minor" value="00" />
+		<property name="v.minor" value="01" />
 
 		<tstamp>
 			<format property="build_utc" timezone="Etc/Greenwich" pattern="yyyyMMdd HHmmss Z" />
@@ -20,7 +20,7 @@
 		</delete>
 
 		<mkdir dir="${java.io.tmpdir}/build/ipc" />
-		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" updatedProperty="jar.compile" includeantruntime="false" debuglevel="lines,vars,source" source="22" target="22" compiler="modern">
+		<javac srcdir="src/java" destdir="${java.io.tmpdir}/build/ipc" debug="true" updatedProperty="jar.compile" includeantruntime="false" debuglevel="lines,vars,source" source="23" target="23" compiler="modern">
 			<compilerarg value="-Xlint:unchecked,deprecation,path,finally,-options" />
 	    	<classpath>
 				<pathelement path="${classpath}" />
