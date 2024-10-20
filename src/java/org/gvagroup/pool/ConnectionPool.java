@@ -18,7 +18,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable Connection Pool.
  * @author Luke
- * @version 3.00
+ * @version 3.01
  * @param <T> the Connection type.
  * @since 1.0
  * @see ConnectionPoolEntry
@@ -440,12 +440,15 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					log.atError().withThrowable(se).log("{} cannot reconnect Connection {}", _name, cpe);
 					_errorCount.increment();
 				}
-			}
+			} else
+				cpe.free();
 			
 			if (cpe.isConnected())
 				addIdle(cpe);
-		} else if (cpe.isConnected())
+		} else if (cpe.isConnected()) {
+			cpe.free();
 			addIdle(cpe);
+		}
 
 		// Return usage time
 		log.debug("{} free {} - ({}ms)", _name, cpe, Long.valueOf(useTime));
@@ -506,15 +509,20 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	/**
 	 * Frees a connection entry and returns it back to the list of idle connections. We do the free() here to ensure this occurs when we have the write lock.
 	 * @param cpe the ConnectionPoolEntry
-	 * @return TRUE if the connection was already present, otherwise FALSE
 	 */
-	boolean addIdle(ConnectionPoolEntry<T> cpe) {
+	void addIdle(ConnectionPoolEntry<T> cpe) {
 		try {
 			_w.lock();
-			if (cpe.inUse()) cpe.free();
+			if (cpe.inUse()) {
+				log.warn("Non-Idle {} entry {} added", _name, cpe);
+				cpe.free();
+			}
+			
 			boolean hasCon = _idleCons.remove(cpe);
+			if (hasCon)
+				log.warn("{} entry {} already in Idle list", _name, cpe);
+
 			_idleCons.add(cpe);
-			return hasCon;
 		} finally {
 			_w.unlock();
 		}
@@ -604,9 +612,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 
 					try {
 						cpe.connect();
-						boolean wasIdle = addIdle(cpe);
-						if (wasIdle)
-							log.warn("{} returned already idle connection {}", cpe);
+						addIdle(cpe);
 					} catch (SQLException se) {
 						log.warn("Unknown SQL Error code - {}", se.getSQLState());
 					} catch (Exception e) {
