@@ -6,14 +6,14 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store connection data in a connection pool and track usage.
  * @author Luke
- * @version 3.00
+ * @version 3.01
  * @param <T> the connection type
  * @since 1.0
  */
 
 public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements java.io.Serializable, Comparable<ConnectionPoolEntry<T>> {
 
-	private static final long serialVersionUID = -6121720901088473809L;
+	private static final long serialVersionUID = 680599574118396796L;
 
 	/**
 	 * Logger.
@@ -31,6 +31,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 
 	private long _totalTime;
 	private long _useTime;
+	private long _maxUseTime;
 	private long _startTime;
 	private long _lastUsed;
 	private long _lastChecked;
@@ -147,6 +148,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	protected void markFree() {
 		_useTime = getUseTime();
 		_totalTime += _useTime;
+		_maxUseTime = Math.max(_maxUseTime, _useTime);
 		_inUse = false;
 	}
 	
@@ -271,6 +273,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	public long getUseTime() {
 		return inUse() ? (System.currentTimeMillis() - _startTime) : _useTime;
+	}
+	
+	/**
+	 * Returns the maximum usage time of this connection entry.
+	 * @return the maximum time this Connection Entry was reserved, in milliseconds
+	 */
+	public long getMaxUseTime() {
+		return _maxUseTime;
 	}
 	
 	/**

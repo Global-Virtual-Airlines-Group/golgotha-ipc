@@ -6,13 +6,13 @@ import java.time.Instant;
 /**
  * A bean to store information about a JDBC connection pool entry.
  * @author Luke
- * @version 3.00
+ * @version 3.01
  * @since 1.0
  */
 
 public class ConnectionInfo implements java.io.Serializable, Comparable<ConnectionInfo> {
    
-	private static final long serialVersionUID = -6631743019256780021L;
+	private static final long serialVersionUID = -2296573022993532611L;
 	
 	private final int _id;
 	private final String _type;
@@ -25,6 +25,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
 	private final long _sessionUseCount;
 	private final long _totalUse;
 	private final long _currentUse;
+	private final long _maxUse;
 	private final Instant _lastUsed;
 	private final Instant _lastChecked;
 	private final Throwable _trace;
@@ -46,6 +47,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
       _sessionUseCount = entry.getSessionUseCount();
       _totalUse = entry.getTotalUseTime();
       _currentUse = entry.getUseTime();
+      _maxUse = entry.getMaxUseTime();
       _trace = entry.getStackInfo();
       _lastUsed = (entry.getLastUseTime() > 0) ? Instant.ofEpochMilli(entry.getLastUseTime()) : null;
       _lastChecked = (entry.getLastCheckTime() > 0) ? Instant.ofEpochMilli(entry.getLastCheckTime()) : null;
@@ -146,6 +148,14 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
     */
    public long getCurrentUse() {
       return _currentUse;
+   }
+   
+   /**
+    * Returns the maximum usage time of this Connection.
+    * @return the usage time in milliseconds
+    */
+   public long getMaxUse() {
+	   return _maxUse;
    }
    
    /**
