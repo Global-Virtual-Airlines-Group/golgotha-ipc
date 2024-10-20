@@ -6,7 +6,7 @@ import redis.clients.jedis.Jedis;
 /**
  * A connection pool for Jedis connections.
  * @author Luke
- * @version 3.00
+ * @version 3.01
  * @since 3.00
  */
 
@@ -20,7 +20,7 @@ public class JedisPool extends ConnectionPool<Jedis> {
 	 * @param name the pool name
 	 */
 	public JedisPool(int maxSize, String name) {
-		super(maxSize, name, 10, JedisPool.class);
+		super(maxSize, name, 30, JedisPool.class);
 	}
 
 	@Override
