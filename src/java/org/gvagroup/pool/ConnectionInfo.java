@@ -6,7 +6,7 @@ import java.time.Instant;
 /**
  * A bean to store information about a JDBC connection pool entry.
  * @author Luke
- * @version 3.01
+ * @version 3.02
  * @since 1.0
  */
 
@@ -15,6 +15,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
 	private static final long serialVersionUID = -2296573022993532611L;
 	
 	private final int _id;
+	private final long _lastThreadID;
 	private final String _type;
 	private final boolean _isDynamic;
 	private final boolean _isConnected;
@@ -37,6 +38,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
    ConnectionInfo(ConnectionPoolEntry<?> entry) {
       super();
       _id = entry.getID();
+      _lastThreadID = entry.getLastThreadID();
       _type = entry.getType();
       _isDynamic = entry.isDynamic();
       _isConnected = entry.isConnected();
@@ -76,6 +78,14 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
     */
    public Throwable getStackInfo() {
 	   return _trace;
+   }
+   
+   /**
+    * Returns the ID of the last Thread to reserve this Connection.
+    * @return the Thread ID
+    */
+   public long getLastThreadID() {
+	   return _lastThreadID;
    }
    
    /**

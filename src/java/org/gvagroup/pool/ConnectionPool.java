@@ -514,7 +514,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		try {
 			_w.lock();
 			if (cpe.inUse()) {
-				log.warn("Non-Idle {} entry {} added", _name, cpe);
+				log.warn("Non-Idle {} entry {} added (used by {}, returned by {})", _name, cpe, Long.valueOf(cpe.getLastThreadID()), Long.valueOf(Thread.currentThread().threadId()));
 				cpe.free();
 			}
 			

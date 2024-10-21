@@ -6,7 +6,7 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store connection data in a connection pool and track usage.
  * @author Luke
- * @version 3.01
+ * @version 3.02
  * @param <T> the connection type
  * @since 1.0
  */
@@ -28,6 +28,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	private boolean _inUse = false;
 	private boolean _dynamic = false;
 	private boolean _connected = false;
+	private long _lastThreadID;
 
 	private long _totalTime;
 	private long _useTime;
@@ -161,6 +162,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		_inUse = true;
 		_useCount++;
 		_sessionUseCount++;
+		_lastThreadID = Thread.currentThread().threadId();
 	}
 	
 	/**
@@ -337,6 +339,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	public long getTotalUseTime() {
 		return _totalTime;
+	}
+	
+	/**
+	 * Returns the ID of the last thread to use this connection. 
+	 * @return the Thread ID
+	 */
+	public long getLastThreadID() {
+		return _lastThreadID;
 	}
 
 	/**
