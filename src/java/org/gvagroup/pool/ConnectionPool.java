@@ -280,7 +280,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			if (cpe != null) {
 				if (cpe.isActive() && !cpe.inUse()) {
 					T c = cpe.reserve(_logStack);
-					log.debug("{} reserve {}", _name, cpe);
+					log.debug("{} reserve {} ({})", _name, cpe, Thread.currentThread().getName());
 					_totalRequests.increment();
 					return c;
 				}
@@ -451,7 +451,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		}
 
 		// Return usage time
-		log.debug("{} free {} - ({}ms)", _name, cpe, Long.valueOf(useTime));
+		log.debug("{} free {} - [{}ms] ({})", _name, cpe, Long.valueOf(useTime), Thread.currentThread().getName());
 		return useTime;
 	}
 
@@ -511,16 +511,19 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @param cpe the ConnectionPoolEntry
 	 */
 	void addIdle(ConnectionPoolEntry<T> cpe) {
+		String threadName = Thread.currentThread().getName();
 		try {
 			_w.lock();
 			if (cpe.inUse()) {
-				log.warn("Non-Idle {} entry {} added (used by {}, returned by {})", _name, cpe, Long.valueOf(cpe.getLastThreadID()), Long.valueOf(Thread.currentThread().threadId()));
+				log.warn("Non-Idle {} entry {} {} added (used by {}, returned by {})", _name, cpe.isDynamic() ? "Dynamic" : "Persistent", cpe, cpe.getLastThreadName(), threadName);
 				cpe.free();
 			}
 			
 			boolean hasCon = _idleCons.remove(cpe);
 			if (hasCon)
 				log.warn("{} entry {} already in Idle list", _name, cpe);
+			else
+				log.debug("{} added to Idle list ({})", cpe, threadName);
 
 			_idleCons.add(cpe);
 		} finally {
@@ -531,12 +534,12 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	/**
 	 * Removes a connection entry from to the list of idle connections.
 	 * @param cpe the ConnectionPoolEntry
-	 * @return TRUE if the connection was not present, otherwise FALSE
+	 * @return TRUE if the connection was present, otherwise FALSE
 	 */
 	boolean removeIdle(ConnectionPoolEntry<T> cpe) {
 		try {
 			_w.lock();
-			return !_idleCons.remove(cpe);
+			return _idleCons.remove(cpe);
 		} finally {
 			_w.unlock();
 		}
@@ -560,6 +563,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 */
 	void validate() {
 		try {
+			log.info("{} {} Validator started", _name, getType());
 			_lastValidationTime = System.currentTimeMillis();
 			_w.lock();
 			
@@ -608,7 +612,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				else if (!cpe.inUse() && !cpe.checkConnection()) {
 					log.warn("Reconnecting Connection {}", cpe);
 					cpe.close();
-					removeIdle(cpe);
+					if (removeIdle(cpe))
+						log.debug("{} Validator removed {} from Idle list", _name, cpe);
 
 					try {
 						cpe.connect();
@@ -622,6 +627,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			}
 		} finally {
 			_w.unlock();
+			log.info("{} {} Validator completed", _name, getType());
 		}
 	}
 }

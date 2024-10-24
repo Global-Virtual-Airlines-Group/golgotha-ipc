@@ -29,6 +29,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	private boolean _dynamic = false;
 	private boolean _connected = false;
 	private long _lastThreadID;
+	private String _lastThreadName;
 
 	private long _totalTime;
 	private long _useTime;
@@ -162,7 +163,9 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		_inUse = true;
 		_useCount++;
 		_sessionUseCount++;
-		_lastThreadID = Thread.currentThread().threadId();
+		Thread t = Thread.currentThread();
+		_lastThreadID = t.threadId();
+		_lastThreadName = t.getName();
 	}
 	
 	/**
@@ -347,6 +350,10 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	public long getLastThreadID() {
 		return _lastThreadID;
+	}
+	
+	public String getLastThreadName() {
+		return _lastThreadName;
 	}
 
 	/**
