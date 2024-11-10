@@ -563,7 +563,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 */
 	void validate() {
 		try {
-			log.info("{} {} Validator started", _name, getType());
+			log.debug("{} {} Validator started", _name, getType());
 			_lastValidationTime = System.currentTimeMillis();
 			_w.lock();
 			
@@ -627,7 +627,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			}
 		} finally {
 			_w.unlock();
-			log.info("{} {} Validator completed", _name, getType());
+			log.debug("{} {} Validator completed", _name, getType());
 		}
 	}
 }
