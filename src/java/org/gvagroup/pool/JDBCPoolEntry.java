@@ -64,7 +64,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 	}
 	
 	@Override
-	void free() {
+	synchronized void free() {
 		if (checkFree())
 			return;
 
@@ -85,7 +85,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 	}
 
 	@Override
-	Connection reserve(boolean logStack) {
+	synchronized Connection reserve(boolean logStack) {
 		checkState();
 		markUsed();
 		if (logStack)
