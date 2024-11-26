@@ -61,7 +61,7 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	}
 	
 	@Override
-	synchronized Jedis reserve(boolean logStack) {
+	Jedis reserve(boolean logStack) {
 		checkState();
 		markUsed();
 		if (logStack)
@@ -71,7 +71,7 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	}
 
 	@Override
-	synchronized void free() {
+	void free() {
 		if (checkFree())
 			return;
 		
