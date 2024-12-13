@@ -192,8 +192,9 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	/**
 	 * Returns this entry's connection to its original source.
 	 */
+	@SuppressWarnings("unchecked")
 	void recycle() {
-		_src.release(_c.get());
+		_src.release((T) _c); // ConnectionPool#release() expects a T that it can cast to ConnectionWrapper<T>
 	}
 
 	/**
