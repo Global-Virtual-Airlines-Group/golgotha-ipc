@@ -152,6 +152,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		_totalTime += _useTime;
 		_maxUseTime = Math.max(_maxUseTime, _useTime);
 		_inUse = false;
+		log.debug("{}-{} Marked free", getType(), Integer.valueOf(_id));
 	}
 	
 	/**

@@ -609,19 +609,23 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 						log.warn("{} attempted to remove non-idle connection {}", _name, cpe);
 				} else if (cpe.inUse())
 					log.info("Connection {} in use", cpe);
-				else if (!cpe.inUse() && !cpe.checkConnection()) {
-					log.warn("Reconnecting Connection {}", cpe);
-					cpe.close();
-					if (removeIdle(cpe))
-						log.debug("{} Validator removed {} from Idle list", _name, cpe);
+				else if (!cpe.inUse()) {
+					log.debug("Validating Connection {}", cpe);
+					boolean isOK = cpe.checkConnection();
+					if (!isOK) {
+						log.warn("Reconnecting Connection {}", cpe);
+						cpe.close();
+						if (removeIdle(cpe))
+							log.debug("{} Validator removed {} from Idle list", _name, cpe);
 
-					try {
-						cpe.connect();
-						addIdle(cpe);
-					} catch (SQLException se) {
-						log.warn("Unknown SQL Error code - {}", se.getSQLState());
-					} catch (Exception e) {
-						log.atError().withThrowable(e).log("Error reconnecting {}", cpe);
+						try {
+							cpe.connect();
+							addIdle(cpe);
+						} catch (SQLException se) {
+							log.warn("Unknown SQL Error code - {}", se.getSQLState());
+						} catch (Exception e) {
+							log.atError().withThrowable(e).log("Error reconnecting {}", cpe);
+						}
 					}
 				}
 			}
