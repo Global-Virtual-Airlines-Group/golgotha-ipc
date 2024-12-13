@@ -1,4 +1,4 @@
-// Copyright 2007, 2009, 2011, 2013, 2014, 2016, 2017, 2020 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2007, 2009, 2011, 2013, 2014, 2016, 2017, 2020, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
 import java.sql.*;
@@ -10,11 +10,11 @@ import java.util.concurrent.Executor;
  * certain sensitive methods (such as {@link Connection#close()}) from being called by
  * command code. 
  * @author Luke
- * @version 3.00
+ * @version 3.02
  * @since 1.0
  */
 
-public class JDBCConnectionWrapper implements ConnectionWrapper<Connection>, Connection {
+public class JDBCWrapper implements ConnectionWrapper<Connection>, Connection {
 	
 	private final int _id;
 	private long _lastUse;
@@ -29,7 +29,7 @@ public class JDBCConnectionWrapper implements ConnectionWrapper<Connection>, Con
 	 * @param c the JDBC connection
 	 * @param cpe the ConnectionPoolEntry to wrap
 	 */
-	JDBCConnectionWrapper(Connection c, JDBCPoolEntry cpe) {
+	JDBCWrapper(Connection c, JDBCPoolEntry cpe) {
 		super();
 		_id = cpe.getID();
 		_c = c;
@@ -58,7 +58,7 @@ public class JDBCConnectionWrapper implements ConnectionWrapper<Connection>, Con
 	@Override
 	public void close() {
 		recordLastUse();
-		_entry.free();
+		_entry.recycle();
 	}
 	
 	@Override

@@ -7,7 +7,7 @@ import java.util.*;
 /**
  * A class to store JDBC connections in a connection pool and track usage.
  * @author Luke
- * @version 3.00
+ * @version 3.02
  * @since 3.0
  */
 
@@ -57,7 +57,7 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 		// Create the connection
 		Connection con = DriverManager.getConnection(_props.getProperty("url"), _props);
 		con.setTransactionIsolation(DEFAULT_SERIALIZATION);
-		JDBCConnectionWrapper cw = new JDBCConnectionWrapper(con, this);
+		JDBCWrapper cw = new JDBCWrapper(con, this);
 		cw.setAutoCommit(_autoCommit);
 		setWrapper(cw);
 		markConnected();
