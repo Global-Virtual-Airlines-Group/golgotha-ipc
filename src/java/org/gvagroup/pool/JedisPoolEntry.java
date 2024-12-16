@@ -8,7 +8,7 @@ import redis.clients.jedis.*;
 /**
  * A class to store Jedis connections in a connection pool and track usage.
  * @author Luke
- * @version 3.00
+ * @version 3.02
  * @since 3.00
  */
 
@@ -72,10 +72,8 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 
 	@Override
 	void free() {
-		if (checkFree())
-			return;
-		
-		markFree();		
+		if (!checkFree())
+			markFree();		
 	}
 
 	@Override
