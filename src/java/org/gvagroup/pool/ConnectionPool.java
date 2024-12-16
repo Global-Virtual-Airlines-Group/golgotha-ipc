@@ -511,11 +511,12 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @param cpe the ConnectionPoolEntry
 	 */
 	void addIdle(ConnectionPoolEntry<T> cpe) {
-		String threadName = Thread.currentThread().getName();
+		final String threadName = Thread.currentThread().getName();
 		try {
 			_w.lock();
 			if (cpe.inUse()) {
-				log.warn("Non-Idle {} entry {} {} added (used by {}, returned by {})", _name, cpe.isDynamic() ? "Dynamic" : "Persistent", cpe, cpe.getLastThreadName(), threadName);
+				log.warn("{} adding {} to Idle", threadName, cpe);
+				log.warn("Non-Idle {} entry {} {} added (used by {}/{})", _name, cpe.isDynamic() ? "Dynamic" : "Persistent", cpe, cpe.getLastThreadName(), Long.valueOf(cpe.getLastThreadID()));
 				cpe.free();
 			}
 			
@@ -596,7 +597,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				} else if (cpe.inUse() && isStale) {
 					@SuppressWarnings("unchecked")
 					long useTime = release((T) cpe.getWrapper(), true);
-					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale Connection {} after {}ms", _name, cpe, Long.valueOf(useTime));
+					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale Connection {} after {}ms ({})", _name, cpe, Long.valueOf(useTime), cpe.getLastThreadName());
 				} else if (cpe.isDynamic() && !cpe.inUse()) {
 					if (isStale)
 						log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale dynamic Connection {}", _name, cpe);
@@ -608,7 +609,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					if (wasNotIdle)
 						log.warn("{} attempted to remove non-idle connection {}", _name, cpe);
 				} else if (cpe.inUse())
-					log.info("Connection {} in use", cpe);
+					log.info("Connection {} in use ({})", cpe, cpe.getLastThreadName());
 				else if (!cpe.inUse()) {
 					log.debug("Validating Connection {}", cpe);
 					boolean isOK = cpe.checkConnection();

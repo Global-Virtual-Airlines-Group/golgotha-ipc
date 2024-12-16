@@ -152,6 +152,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		_totalTime += _useTime;
 		_maxUseTime = Math.max(_maxUseTime, _useTime);
 		_inUse = false;
+		_lastThreadID = 0;
 		log.debug("{}-{} Marked free", getType(), Integer.valueOf(_id));
 	}
 	
@@ -354,6 +355,10 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		return _lastThreadID;
 	}
 	
+	/**
+	 * Returns the name of the last thread to use this connection. 
+	 * @return the Thread name
+	 */
 	public String getLastThreadName() {
 		return _lastThreadName;
 	}
