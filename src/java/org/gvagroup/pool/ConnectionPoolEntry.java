@@ -148,12 +148,14 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 * Adds the usage time to the total for this connection, and marks this entry as free.
 	 */
 	protected void markFree() {
+		String tn = _lastThreadName;
 		_useTime = getUseTime();
 		_totalTime += _useTime;
 		_maxUseTime = Math.max(_maxUseTime, _useTime);
 		_inUse = false;
 		_lastThreadID = 0;
-		log.debug("{}-{} Marked free", getType(), Integer.valueOf(_id));
+		_lastThreadName = null;
+		log.debug("{} [ {} ] Marked free (was {})", toString(), Long.valueOf(_useCount), tn);
 	}
 	
 	/**

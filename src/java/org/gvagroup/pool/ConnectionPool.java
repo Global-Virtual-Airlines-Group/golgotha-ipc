@@ -4,6 +4,7 @@ package org.gvagroup.pool;
 import java.io.*;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import java.util.concurrent.*;
@@ -18,7 +19,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable Connection Pool.
  * @author Luke
- * @version 3.01
+ * @version 3.02
  * @param <T> the Connection type.
  * @since 1.0
  * @see ConnectionPoolEntry
@@ -32,6 +33,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private transient final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock(false); // unfair scheduling to give writer priority
 	private final Lock _r = _lock.readLock();
 	private final Lock _w = _lock.writeLock();
+	
+	private transient final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
 	/**
 	 * Pool logger.
@@ -280,12 +283,13 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			if (cpe != null) {
 				if (cpe.isActive() && !cpe.inUse()) {
 					T c = cpe.reserve(_logStack);
-					log.debug("{} reserve {} ({})", _name, cpe, Thread.currentThread().getName());
+					log.debug("{} reserve {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
 					_totalRequests.increment();
 					return c;
 				}
 				
-				log.warn("{} retrieved idle/used inactive Connection {} - (idle={}, used={})", _name, cpe, Boolean.valueOf(!cpe.isActive()), Boolean.valueOf(cpe.inUse()));
+				Instant lastUse = Instant.ofEpochMilli(cpe.getLastUseTime());
+				log.warn("{} retrieved idle/used inactive Connection {} - (idle={}, used={}) by {} on {}", _name, cpe, Boolean.valueOf(!cpe.isActive()), Boolean.valueOf(cpe.inUse()), cpe.getLastThreadName(), FMT.format(lastUse));
 				_errorCount.increment();
 				cpe = null;
 			}
@@ -341,6 +345,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			_r.lock();
 			cpe = _idleCons.poll(250, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
+				log.debug("{} reserve {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
 			}
@@ -351,8 +356,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			waitTime = System.nanoTime() - waitTime;
 			long ms = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
 			_maxWaitTime = Math.max(_maxWaitTime, ms);
-			if (ms > 75)
-				log.warn("{} waited {}ms for Connection", _name, Long.valueOf(ms));
+			log.log((ms > 50) ? Level.WARN : Level.INFO, "{} waited {}ms for Connection {}", _name, Long.valueOf(ms), cpe);
 		}
 		
 		// Dump stack if this is our first error in a while
@@ -451,7 +455,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		}
 
 		// Return usage time
-		log.debug("{} free {} - [{}ms] ({})", _name, cpe, Long.valueOf(useTime), Thread.currentThread().getName());
+		log.debug("{} free {} [{}] - [{}ms]", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(useTime));
 		return useTime;
 	}
 
@@ -506,27 +510,26 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		}
 	}
 	
-	/**
+	/*
 	 * Frees a connection entry and returns it back to the list of idle connections. We do the free() here to ensure this occurs when we have the write lock.
-	 * @param cpe the ConnectionPoolEntry
 	 */
-	void addIdle(ConnectionPoolEntry<T> cpe) {
-		final String threadName = Thread.currentThread().getName();
+	private void addIdle(ConnectionPoolEntry<T> cpe) {
 		try {
 			_w.lock();
 			if (cpe.inUse()) {
-				log.warn("{} adding {} to Idle", threadName, cpe);
-				log.warn("Non-Idle {} entry {} {} added (used by {}/{})", _name, cpe.isDynamic() ? "Dynamic" : "Persistent", cpe, cpe.getLastThreadName(), Long.valueOf(cpe.getLastThreadID()));
+				Instant lastUse = Instant.ofEpochMilli(cpe.getLastUseTime());
+				log.warn("Non-Idle {} entry {} ({}) added (used by {}/{} on {})", _name, cpe.isDynamic() ? "Dynamic" : "Persistent", cpe, cpe.getLastThreadName(), Long.valueOf(cpe.getLastThreadID()), FMT.format(lastUse));
+				log.warn("Idle = {}", _idleCons.stream().map(ie -> String.valueOf(ie.getID())).collect(Collectors.toList()));
 				cpe.free();
 			}
 			
-			boolean hasCon = _idleCons.remove(cpe);
-			if (hasCon)
-				log.warn("{} entry {} already in Idle list", _name, cpe);
-			else
-				log.debug("{} added to Idle list ({})", cpe, threadName);
-
-			_idleCons.add(cpe);
+			boolean hasCon = _idleCons.contains(cpe);
+			if (hasCon) {
+				log.warn("{} entry {} [{}] already in Idle list - {}", _name, cpe, Long.valueOf(cpe.getUseCount()), _idleCons.stream().map(ie -> String.valueOf(ie.getID())).collect(Collectors.toList()));
+			} else {
+				_idleCons.add(cpe);
+				log.debug("{} added to Idle [{}]", cpe, Long.valueOf(cpe.getUseCount()));
+			}
 		} finally {
 			_w.unlock();
 		}
@@ -537,7 +540,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @param cpe the ConnectionPoolEntry
 	 * @return TRUE if the connection was present, otherwise FALSE
 	 */
-	boolean removeIdle(ConnectionPoolEntry<T> cpe) {
+	private boolean removeIdle(ConnectionPoolEntry<T> cpe) {
 		try {
 			_w.lock();
 			return _idleCons.remove(cpe);
@@ -621,7 +624,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 
 						try {
 							cpe.connect();
-							addIdle(cpe);
+							_idleCons.add(cpe);
 						} catch (SQLException se) {
 							log.warn("Unknown SQL Error code - {}", se.getSQLState());
 						} catch (Exception e) {
