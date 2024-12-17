@@ -155,7 +155,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		_inUse = false;
 		_lastThreadID = 0;
 		_lastThreadName = null;
-		log.debug("{} [ {} ] Marked free (was {})", toString(), Long.valueOf(_useCount), tn);
+		log.debug("{} [{}] Marked free (was {})", toString(), Long.valueOf(_useCount), tn);
 	}
 	
 	/**

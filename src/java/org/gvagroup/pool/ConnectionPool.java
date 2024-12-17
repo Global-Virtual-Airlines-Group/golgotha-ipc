@@ -321,8 +321,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				} else {
 					// This may have been returned to the pool between lines 211 and 232
 					long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
-					if (useDelta > 10) {
-						log.warn("{} active ({} for {}ms) Connection {} not in idle list - {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller());
+					if (useDelta > 5) {
+						log.warn("{} active ({} for {}ms) Connection {} not in idle list - {} {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller(), _idleCons);
 						_errorCount.increment();
 					}
 				}
@@ -331,6 +331,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			// Return back the connection
 			if (cpe != null) {
 				T c = cpe.reserve(_logStack);
+				log.debug("{} reserve {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
 				_totalRequests.increment();
 				_expandCount.increment();
 				return c;
@@ -519,13 +520,13 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			if (cpe.inUse()) {
 				Instant lastUse = Instant.ofEpochMilli(cpe.getLastUseTime());
 				log.warn("Non-Idle {} entry {} ({}) added (used by {}/{} on {})", _name, cpe.isDynamic() ? "Dynamic" : "Persistent", cpe, cpe.getLastThreadName(), Long.valueOf(cpe.getLastThreadID()), FMT.format(lastUse));
-				log.warn("Idle = {}", _idleCons.stream().map(ie -> String.valueOf(ie.getID())).collect(Collectors.toList()));
+				log.warn("Idle = {}", _idleCons);
 				cpe.free();
 			}
 			
 			boolean hasCon = _idleCons.contains(cpe);
 			if (hasCon) {
-				log.warn("{} entry {} [{}] already in Idle list - {}", _name, cpe, Long.valueOf(cpe.getUseCount()), _idleCons.stream().map(ie -> String.valueOf(ie.getID())).collect(Collectors.toList()));
+				log.warn("{} entry {} [{}] already in Idle list - {}", _name, cpe, Long.valueOf(cpe.getUseCount()), _idleCons);
 			} else {
 				_idleCons.add(cpe);
 				log.debug("{} added to Idle [{}]", cpe, Long.valueOf(cpe.getUseCount()));
