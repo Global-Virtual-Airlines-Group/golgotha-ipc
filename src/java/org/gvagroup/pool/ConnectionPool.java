@@ -321,7 +321,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				} else {
 					// This may have been returned to the pool between lines 211 and 232
 					long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
-					if (useDelta > 5) {
+					if (useDelta > 1) {
 						log.warn("{} active ({} for {}ms) Connection {} not in idle list - {} {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller(), _idleCons);
 						_errorCount.increment();
 					}
@@ -357,7 +357,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			waitTime = System.nanoTime() - waitTime;
 			long ms = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
 			_maxWaitTime = Math.max(_maxWaitTime, ms);
-			log.log((ms > 50) ? Level.WARN : Level.INFO, "{} waited {}ms for Connection {}", _name, Long.valueOf(ms), cpe);
+			log.log((ms > 50) ? Level.WARN : Level.INFO, "{} waited {}ms for Connection", _name, Long.valueOf(ms));
 		}
 		
 		// Dump stack if this is our first error in a while
@@ -450,10 +450,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			
 			if (cpe.isConnected())
 				addIdle(cpe);
-		} else if (cpe.isConnected()) {
-			cpe.free();
+		} else if (cpe.isConnected())
 			addIdle(cpe);
-		}
 
 		// Return usage time
 		log.debug("{} free {} [{}] - [{}ms]", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(useTime));
@@ -517,12 +515,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private void addIdle(ConnectionPoolEntry<T> cpe) {
 		try {
 			_w.lock();
-			if (cpe.inUse()) {
-				Instant lastUse = Instant.ofEpochMilli(cpe.getLastUseTime());
-				log.warn("Non-Idle {} entry {} ({}) added (used by {}/{} on {})", _name, cpe.isDynamic() ? "Dynamic" : "Persistent", cpe, cpe.getLastThreadName(), Long.valueOf(cpe.getLastThreadID()), FMT.format(lastUse));
-				log.warn("Idle = {}", _idleCons);
+			if (cpe.inUse())
 				cpe.free();
-			}
 			
 			boolean hasCon = _idleCons.contains(cpe);
 			if (hasCon) {
