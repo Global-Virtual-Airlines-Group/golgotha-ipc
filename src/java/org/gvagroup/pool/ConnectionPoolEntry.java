@@ -115,12 +115,12 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	void close() {
 		try {
+			markFree();
 			_c.forceClose();
 		} catch (Exception e) {
 			// empty
 		} finally {
 			_connected = false;
-			_inUse = false;
 			_c = null;
 		}
 	}
@@ -152,9 +152,9 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 		_useTime = getUseTime();
 		_totalTime += _useTime;
 		_maxUseTime = Math.max(_maxUseTime, _useTime);
-		_inUse = false;
 		_lastThreadID = 0;
 		_lastThreadName = null;
+		_inUse = false;
 		log.debug("{} [{}] Marked free (was {})", toString(), Long.valueOf(_useCount), tn);
 	}
 	
@@ -162,9 +162,9 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 * Initializes usage counters, and marks this entry as busy. 
 	 */
 	protected void markUsed() {
+		_inUse = true;
 		_startTime = System.currentTimeMillis();
 		_lastUsed = _startTime;
-		_inUse = true;
 		_useCount++;
 		_sessionUseCount++;
 		Thread t = Thread.currentThread();
