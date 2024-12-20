@@ -80,7 +80,6 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 			log.error("Error resetting autoCommit/isolation on {} - {}", Integer.valueOf(getID()), e.getMessage());
 		}
 
-		// Add the usage time to the total for this connection
 		markFree();
 	}
 
@@ -96,12 +95,15 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 	
 	@Override
 	boolean checkConnection() {
+		markUsed();
 		markChecked();
 		Connection c = get();
 		try (Statement s = c.createStatement(); ResultSet rs = s.executeQuery(_validationQuery)) {
 			return rs.next();
 		} catch (SQLException se) {
 			return false;
+		} finally {
+			markFree();
 		}
 	}
 	
@@ -117,9 +119,8 @@ class JDBCPoolEntry extends ConnectionPoolEntry<Connection> {
 
 	/**
 	 * Sets the automatic commit setting for this connection. When set, all transactions will be committed to the JDBC
-	 * data source immediately. Data Access Objects may change the autoCommit property of the underlying JDBC
-	 * connection, but when the connection is returned to the pool its autoCommit property will be reset back to this
-	 * value.
+	 * data source immediately. Data Access Objects may change the autoCommit property of the underlying JDBC connection, 
+	 * but when the connection is returned to the pool its autoCommit property will be reset back to this value.
 	 * @param commit TRUE if connections should autoCommit by default, otherwise FALSE
 	 * @see Connection#setAutoCommit(boolean)
 	 */
