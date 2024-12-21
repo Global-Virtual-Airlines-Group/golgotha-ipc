@@ -8,7 +8,7 @@ import java.lang.reflect.*;
 /**
  * A user-configurable JDBC Connection Pool.
  * @author Luke
- * @version 3.01
+ * @version 3.03
  * @since 1.0
  */
 
@@ -31,6 +31,7 @@ public class JDBCPool extends ConnectionPool<Connection> {
 	 */
 	public JDBCPool(int maxSize, String name) {
 		super(maxSize, name, 60, JDBCPool.class);
+		setWaitTime(20, 250);
 		DriverManager.setLoginTimeout(2);
 	}
 	

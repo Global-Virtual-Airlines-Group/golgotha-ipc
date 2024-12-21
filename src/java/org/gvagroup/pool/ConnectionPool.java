@@ -19,7 +19,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable Connection Pool.
  * @author Luke
- * @version 3.02
+ * @version 3.03
  * @param <T> the Connection type.
  * @since 1.0
  * @see ConnectionPoolEntry
@@ -56,6 +56,9 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	
 	private long _maxWaitTime;
 	private long _maxBorrowTime;
+	
+	private long _fullWaitTime = 250; //ms
+	private long _borrowWaitTime = 5; //ms
 
 	private final ConnectionMonitor<T> _monitor;
 	private final SortedMap<Integer, ConnectionPoolEntry<T>> _cons = new TreeMap<Integer, ConnectionPoolEntry<T>>();
@@ -88,6 +91,16 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		_poolMaxSize = maxSize;
 		_monitor = new ConnectionMonitor<T>(_name, Math.max(1, monitorInterval), this);
 		SharedWorker.register(_monitor);
+	}
+	
+	/**
+	 * Updates the maximum wait times when retrieving a connection from the pool.
+	 * @param borrowWait the maximum time to wait before expanding the pool in milliseconds
+	 * @param fullWait the maximum time to wait before throwing a {@link ConnectionPoolFullException} in milliseconds
+	 */
+	protected void setWaitTime(int borrowWait, int fullWait) {
+		_borrowWaitTime = Math.max(0, borrowWait);
+		_fullWaitTime = Math.max(0, fullWait);
 	}
 	
 	/**
@@ -279,7 +292,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		ConnectionPoolEntry<T> cpe = null;
 		try {
 			_r.lock();
-			cpe = _idleCons.poll();
+			cpe = _idleCons.poll(_borrowWaitTime, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				if (cpe.isActive() && !cpe.inUse()) {
 					T c = cpe.reserve(_logStack);
@@ -293,6 +306,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				_errorCount.increment();
 				cpe = null;
 			}
+		} catch (InterruptedException ie) {
+			log.warn("Interrupted waiting for Idle");
 		} finally {
 			_r.unlock();
 		}
@@ -315,14 +330,14 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					try {
 						log.info("{} reconnecting Connection {}", _name, cpe);
 						cpe.connect();
+						_expandCount.increment();
 					} catch (Exception e) {
 						throw new ConnectionPoolException(e);
 					}
 				} else {
-					// This may have been returned to the pool between lines 211 and 232
-					long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
-					if (useDelta > 1) {
-						log.warn("{} active ({} for {}ms) Connection {} not in idle list - {} {}", _name, Boolean.valueOf(cpe.inUse()), Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller(), _idleCons);
+					if (!_idleCons.contains(cpe)) {
+						long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
+						log.warn("{} active ({} for {}ms) {} not in idle list - {} by {} {}", _name, cpe.inUse() ? "used" : "free", Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller(), cpe.getLastThreadName(), _idleCons);
 						_errorCount.increment();
 					}
 				}
@@ -331,9 +346,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			// Return back the connection
 			if (cpe != null) {
 				T c = cpe.reserve(_logStack);
-				log.debug("{} reserve {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
+				log.debug("{} reserve(wl) {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
 				_totalRequests.increment();
-				_expandCount.increment();
 				return c;
 			}
 		} finally {
@@ -344,9 +358,9 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		long waitTime = System.nanoTime();
 		try {
 			_r.lock();
-			cpe = _idleCons.poll(250, TimeUnit.MILLISECONDS);
+			cpe = _idleCons.poll(_fullWaitTime, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
-				log.debug("{} reserve {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
+				log.debug("{} reserve(w) {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
 			}
@@ -404,7 +418,14 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		}
 
 		// Find the connection pool entry and free it
-		ConnectionPoolEntry<T> cpe = _cons.get(Integer.valueOf(cw.getID()));
+		ConnectionPoolEntry<T> cpe = null;
+		try {
+			_r.lock();
+			cpe = _cons.get(Integer.valueOf(cw.getID()));
+		} finally {
+			_r.unlock();
+		}
+			
 		if (cpe == null) {
 			log.warn("Invalid Connection returned - {}", Integer.valueOf(cw.getID()));
 			_errorCount.increment();
@@ -412,10 +433,11 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		}
 		
 		// Do any cleanup
+		log.debug("{} release {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
 		try {
 			cpe.cleanup();
 		} catch (Exception e) {
-			log.warn("{} error cleaning up {}  - {}", _name, c, e.getMessage());
+			log.warn("{} error cleaning up {} - {}", _name, c, e.getMessage());
 			_errorCount.increment();
 			_monitor.execute();
 		}
@@ -430,14 +452,13 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		boolean isStale = (useTime > getStaleTime());
 		if (cpe.isDynamic() && (isForced || isStale)) {
 			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic Connection {} after {} ms", cpe, Long.valueOf(useTime));
-			cpe.free();
 			cpe.close();
 			_errorCount.increment();
 			return useTime;
 		} else if (!cpe.isDynamic()) {
 			// Check if we need to restart
 			if (isForced || isStale || ((_maxRequests > 0) && (cpe.getSessionUseCount() > _maxRequests))) {
-				log.info("{} restarting Connection {} after {} (total {}) reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
+				log.info("{} restarting Connection {} after {}/{} reservations", _name, cpe, Long.valueOf(cpe.getSessionUseCount()), Long.valueOf(cpe.getUseCount()));
 				cpe.close();
 				try {
 					cpe.connect();
@@ -445,16 +466,15 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					log.atError().withThrowable(se).log("{} cannot reconnect Connection {}", _name, cpe);
 					_errorCount.increment();
 				}
-			} else
-				cpe.free();
+			}
 			
 			if (cpe.isConnected())
-				addIdle(cpe);
+				addIdle(cpe); // freed in here
 		} else if (cpe.isConnected())
-			addIdle(cpe);
+			addIdle(cpe); // freed in here
 
 		// Return usage time
-		log.debug("{} free {} [{}] - [{}ms]", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(useTime));
+		log.debug("{} released {} [{}] - [{}ms]", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(useTime));
 		return useTime;
 	}
 
@@ -515,14 +535,13 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private void addIdle(ConnectionPoolEntry<T> cpe) {
 		try {
 			_w.lock();
-			if (cpe.inUse())
-				cpe.free();
-			
+			if (cpe.inUse()) cpe.free();
 			boolean hasCon = _idleCons.contains(cpe);
 			if (hasCon) {
 				log.warn("{} entry {} [{}] already in Idle list - {}", _name, cpe, Long.valueOf(cpe.getUseCount()), _idleCons);
 			} else {
-				_idleCons.add(cpe);
+				log.debug("Adding {} to Idle", cpe);
+				_idleCons.offer(cpe);
 				log.debug("{} added to Idle [{}]", cpe, Long.valueOf(cpe.getUseCount()));
 			}
 		} finally {

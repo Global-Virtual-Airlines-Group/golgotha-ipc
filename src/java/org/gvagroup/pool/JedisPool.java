@@ -21,6 +21,7 @@ public class JedisPool extends ConnectionPool<Jedis> {
 	 */
 	public JedisPool(int maxSize, String name) {
 		super(maxSize, name, 40, JedisPool.class);
+		setWaitTime(5, 50);
 	}
 
 	@Override
