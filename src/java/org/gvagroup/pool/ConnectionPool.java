@@ -334,13 +334,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					} catch (Exception e) {
 						throw new ConnectionPoolException(e);
 					}
-				} else {
-					if (!_idleCons.contains(cpe)) {
-						long useDelta = System.currentTimeMillis() - cpe.getLastUseTime();
-						log.warn("{} active ({} for {}ms) {} not in idle list - {} by {} {}", _name, cpe.inUse() ? "used" : "free", Long.valueOf(useDelta), cpe, cpe.getStackInfo().getCaller(), cpe.getLastThreadName(), _idleCons);
-						_errorCount.increment();
-					}
-				}
+				} else
+					_idleCons.remove(cpe);
 			}
 			
 			// Return back the connection
@@ -371,7 +366,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			waitTime = System.nanoTime() - waitTime;
 			long ms = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
 			_maxWaitTime = Math.max(_maxWaitTime, ms);
-			log.log((ms > 50) ? Level.WARN : Level.INFO, "{} waited {}ms for Connection", _name, Long.valueOf(ms));
+			log.log((ms > 25) ? Level.WARN : Level.DEBUG, "{} waited {}ms for Connection", _name, Long.valueOf(ms));
 		}
 		
 		// Dump stack if this is our first error in a while
