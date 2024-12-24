@@ -6,7 +6,7 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store connection data in a connection pool and track usage.
  * @author Luke
- * @version 3.02
+ * @version 3.03
  * @param <T> the connection type
  * @since 1.0
  */
@@ -25,7 +25,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	private StackTrace _stackInfo;
 	private final int _id;
 
-	private boolean _inUse = false;
+	private volatile boolean _inUse = false;
 	private boolean _dynamic = false;
 	private boolean _connected = false;
 	private long _lastThreadID;
@@ -115,7 +115,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	void close() {
 		try {
-			markFree();
+			if (!checkFree()) markFree();
 			_c.forceClose();
 		} catch (Exception e) {
 			// empty
@@ -126,8 +126,8 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	}
 	
 	/**
-	 * Helper method to check for already free connection.
-	 * @return if the connection was already freed 
+	 * Checks for an already free connection.
+	 * @return TRUE if the connection was already free, otherwise FALSE 
 	 */
 	protected boolean checkFree() {
 		boolean wasFree = !inUse();
