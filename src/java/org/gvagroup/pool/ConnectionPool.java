@@ -618,8 +618,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				} else if (cpe.inUse())
 					log.info("Connection {} in use ({})", cpe, cpe.getLastThreadName());
 				else if (!cpe.inUse()) {
-					log.debug("Validating Connection {}", cpe);
 					boolean isOK = cpe.checkConnection();
+					log.log(isOK ? Level.DEBUG : Level.WARN, "Validated Connection {} - {}", cpe, isOK ? "OK" : "FAILED");
 					if (!isOK) {
 						log.warn("Reconnecting Connection {}", cpe);
 						cpe.close();
