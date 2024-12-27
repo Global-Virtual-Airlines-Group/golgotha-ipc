@@ -291,7 +291,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		// Try and get an idle connection from the pool
 		ConnectionPoolEntry<T> cpe = null;
 		try {
-			_r.lock();
 			cpe = _idleCons.poll(_borrowWaitTime, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				if (cpe.isActive() && !cpe.inUse()) {
@@ -308,8 +307,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			}
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Idle");
-		} finally {
-			_r.unlock();
 		}
 
 		// Is the pool at its max size? If not, then create a new connection and add it to the pool
@@ -352,7 +349,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		// Wait for a new connection to become available, since we cannot expand
 		long waitTime = System.nanoTime();
 		try {
-			_r.lock();
 			cpe = _idleCons.poll(_fullWaitTime, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				log.debug("{} reserve(w) {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
@@ -362,7 +358,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
 		} finally {
-			_r.unlock();
 			waitTime = System.nanoTime() - waitTime;
 			long ms = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
 			_maxWaitTime = Math.max(_maxWaitTime, ms);
