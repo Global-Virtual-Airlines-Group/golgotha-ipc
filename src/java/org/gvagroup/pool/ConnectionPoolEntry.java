@@ -115,7 +115,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	void close() {
 		try {
-			if (!checkFree()) markFree();
+			if (inUse()) markFree();
 			_c.forceClose();
 		} catch (Exception e) {
 			// empty
