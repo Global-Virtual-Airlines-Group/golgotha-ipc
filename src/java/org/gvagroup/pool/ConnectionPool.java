@@ -291,11 +291,13 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		// Try and get an idle connection from the pool
 		ConnectionPoolEntry<T> cpe = null;
 		try {
+			long wt = System.nanoTime();
 			cpe = _idleCons.poll(_borrowWaitTime, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				if (cpe.isActive() && !cpe.inUse()) {
+					long ms = TimeUnit.MILLISECONDS.convert(System.nanoTime() - wt, TimeUnit.NANOSECONDS);
 					T c = cpe.reserve(_logStack);
-					log.debug("{} reserve {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
+					log.log((ms > 5) ? Level.INFO : Level.DEBUG, "{} reserve {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(ms));
 					_totalRequests.increment();
 					return c;
 				}
@@ -358,8 +360,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
 		} finally {
-			waitTime = System.nanoTime() - waitTime;
-			long ms = TimeUnit.MILLISECONDS.convert(waitTime, TimeUnit.NANOSECONDS);
+			long ms = TimeUnit.MILLISECONDS.convert(System.nanoTime() - waitTime, TimeUnit.NANOSECONDS);
 			_maxWaitTime = Math.max(_maxWaitTime, ms);
 			log.log((ms > 25) ? Level.WARN : Level.DEBUG, "{} waited {}ms for Connection", _name, Long.valueOf(ms));
 		}
@@ -524,32 +525,17 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 */
 	private void addIdle(ConnectionPoolEntry<T> cpe) {
 		try {
-			_w.lock();
+			_r.lock();
 			if (cpe.inUse()) cpe.free();
 			boolean hasCon = _idleCons.contains(cpe);
 			if (hasCon) {
 				log.warn("{} entry {} [{}] already in Idle list - {}", _name, cpe, Long.valueOf(cpe.getUseCount()), _idleCons);
 			} else {
-				log.debug("Adding {} to Idle", cpe);
 				_idleCons.offer(cpe);
 				log.debug("{} added to Idle [{}]", cpe, Long.valueOf(cpe.getUseCount()));
 			}
 		} finally {
-			_w.unlock();
-		}
-	}
-	
-	/**
-	 * Removes a connection entry from to the list of idle connections.
-	 * @param cpe the ConnectionPoolEntry
-	 * @return TRUE if the connection was present, otherwise FALSE
-	 */
-	private boolean removeIdle(ConnectionPoolEntry<T> cpe) {
-		try {
-			_w.lock();
-			return _idleCons.remove(cpe);
-		} finally {
-			_w.unlock();
+			_r.unlock();
 		}
 	}
 	
@@ -623,7 +609,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					if (!isOK) {
 						log.warn("Reconnecting Connection {}", cpe);
 						cpe.close();
-						if (removeIdle(cpe))
+						if (_idleCons.remove(cpe))
 							log.debug("{} Validator removed {} from Idle list", _name, cpe);
 
 						try {
