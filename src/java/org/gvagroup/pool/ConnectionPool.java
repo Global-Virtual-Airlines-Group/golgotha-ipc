@@ -2,10 +2,11 @@
 package org.gvagroup.pool;
 
 import java.io.*;
+import java.util.*;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
@@ -19,14 +20,14 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable Connection Pool.
  * @author Luke
- * @version 3.03
+ * @version 3.04
  * @param <T> the Connection type.
  * @since 1.0
  * @see ConnectionPoolEntry
  * @see ConnectionMonitor
  */
 
-public abstract class ConnectionPool<T extends AutoCloseable> implements Serializable, AutoCloseable, org.gvagroup.pool.Recycler<T> {
+public abstract class ConnectionPool<T extends AutoCloseable> implements Serializable, AutoCloseable, Recycler<T> {
 
 	private static final long serialVersionUID = 8550734573930973176L;
 	
@@ -34,7 +35,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private final Lock _r = _lock.readLock();
 	private final Lock _w = _lock.writeLock();
 	
-	private transient final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
+	private transient DecimalFormat MSFMT = new DecimalFormat("0.000"); 
+	//private transient final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
 	/**
 	 * Pool logger.
@@ -295,15 +297,16 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			cpe = _idleCons.poll(_borrowWaitTime, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
 				if (cpe.isActive() && !cpe.inUse()) {
-					long ms = TimeUnit.MILLISECONDS.convert(System.nanoTime() - wt, TimeUnit.NANOSECONDS);
+					long us = TimeUnit.MICROSECONDS.convert(System.nanoTime() - wt, TimeUnit.NANOSECONDS);
 					T c = cpe.reserve(_logStack);
-					log.log((ms > 5) ? Level.INFO : Level.DEBUG, "{} reserve {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(ms));
+					log.log((us > 2500) ? Level.INFO : Level.DEBUG, "{} reserve {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), MSFMT.format(us / 1000.0));
 					_totalRequests.increment();
 					return c;
 				}
 				
 				Instant lastUse = Instant.ofEpochMilli(cpe.getLastUseTime());
-				log.warn("{} retrieved idle/used inactive Connection {} - (idle={}, used={}) by {} on {}", _name, cpe, Boolean.valueOf(!cpe.isActive()), Boolean.valueOf(cpe.inUse()), cpe.getLastThreadName(), FMT.format(lastUse));
+				DateTimeFormatter dtfmt = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
+				log.warn("{} retrieved idle/used inactive Connection {} - (idle={}, used={}) by {} on {}", _name, cpe, Boolean.valueOf(!cpe.isActive()), Boolean.valueOf(cpe.inUse()), cpe.getLastThreadName(), dtfmt.format(lastUse));
 				_errorCount.increment();
 				cpe = null;
 			}
@@ -352,17 +355,17 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		long waitTime = System.nanoTime();
 		try {
 			cpe = _idleCons.poll(_fullWaitTime, TimeUnit.MILLISECONDS);
+			waitTime = TimeUnit.MICROSECONDS.convert(System.nanoTime() - waitTime, TimeUnit.NANOSECONDS);
 			if (cpe != null) {
-				log.debug("{} reserve(w) {} [{}]", _name, cpe, Long.valueOf(cpe.getUseCount()));
+				log.debug("{} reserve(w) {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), Double.valueOf(waitTime / 1000.0));
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
 			}
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
 		} finally {
-			long ms = TimeUnit.MILLISECONDS.convert(System.nanoTime() - waitTime, TimeUnit.NANOSECONDS);
-			_maxWaitTime = Math.max(_maxWaitTime, ms);
-			log.log((ms > 25) ? Level.WARN : Level.DEBUG, "{} waited {}ms for Connection", _name, Long.valueOf(ms));
+			_maxWaitTime = Math.max(_maxWaitTime, waitTime * 1000);
+			log.log((waitTime > 25000) ? Level.WARN : Level.DEBUG, "{} waited {}ms for Connection", _name, Long.valueOf(waitTime / 1000));
 		}
 		
 		// Dump stack if this is our first error in a while
