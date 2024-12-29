@@ -36,7 +36,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private final Lock _w = _lock.writeLock();
 	
 	private transient DecimalFormat MSFMT = new DecimalFormat("0.000"); 
-	//private transient final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 
 	/**
 	 * Pool logger.
@@ -357,15 +356,13 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			cpe = _idleCons.poll(_fullWaitTime, TimeUnit.MILLISECONDS);
 			waitTime = TimeUnit.MICROSECONDS.convert(System.nanoTime() - waitTime, TimeUnit.NANOSECONDS);
 			if (cpe != null) {
-				log.debug("{} reserve(w) {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), Double.valueOf(waitTime / 1000.0));
+				log.debug("{} reserve(w) {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), MSFMT.format(waitTime / 1000.0));
+				_maxWaitTime = Math.max(_maxWaitTime, waitTime * 1000);
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
 			}
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
-		} finally {
-			_maxWaitTime = Math.max(_maxWaitTime, waitTime * 1000);
-			log.log((waitTime > 25000) ? Level.WARN : Level.DEBUG, "{} waited {}ms for Connection", _name, Long.valueOf(waitTime / 1000));
 		}
 		
 		// Dump stack if this is our first error in a while
