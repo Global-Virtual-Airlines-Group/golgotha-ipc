@@ -356,7 +356,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			cpe = _idleCons.poll(_fullWaitTime, TimeUnit.MILLISECONDS);
 			waitTime = TimeUnit.MICROSECONDS.convert(System.nanoTime() - waitTime, TimeUnit.NANOSECONDS);
 			if (cpe != null) {
-				log.debug("{} reserve(w) {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), MSFMT.format(waitTime / 1000.0));
+				log.info("{} reserve(w) {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), MSFMT.format(waitTime / 1000.0));
 				_maxWaitTime = Math.max(_maxWaitTime, waitTime * 1000);
 				_waitCount.increment();		
 				return cpe.reserve(_logStack);
