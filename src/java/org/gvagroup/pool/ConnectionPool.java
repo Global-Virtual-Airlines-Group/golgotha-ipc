@@ -2,9 +2,8 @@
 package org.gvagroup.pool;
 
 import java.io.*;
+import java.time.*;
 import java.util.*;
-import java.sql.SQLException;
-import java.time.Instant;
 import java.text.DecimalFormat;
 import java.time.format.DateTimeFormatter;
 
@@ -20,7 +19,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable Connection Pool.
  * @author Luke
- * @version 3.04
+ * @version 3.10
  * @param <T> the Connection type.
  * @since 1.0
  * @see ConnectionPoolEntry
@@ -29,7 +28,7 @@ import org.gvagroup.tomcat.SharedWorker;
 
 public abstract class ConnectionPool<T extends AutoCloseable> implements Serializable, AutoCloseable, Recycler<T> {
 
-	private static final long serialVersionUID = 8550734573930973176L;
+	private static final long serialVersionUID = 7191633376038046202L;
 	
 	private transient final ReentrantReadWriteLock _lock = new ReentrantReadWriteLock(false); // unfair scheduling to give writer priority
 	private final Lock _r = _lock.readLock();
@@ -55,8 +54,9 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	private long _lastPoolFullTime;
 	private long _lastValidationTime;
 	
-	private long _maxWaitTime;
-	private long _maxBorrowTime;
+	private volatile long _maxWaitTime;
+	private volatile long _maxBorrowTime;
+	private final LongAdder _totalWaitTime = new LongAdder();
 	
 	private long _fullWaitTime = 250; //ms
 	private long _borrowWaitTime = 5; //ms
@@ -172,7 +172,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		return (_lastValidationTime == 0) ? null : Instant.ofEpochMilli(_lastValidationTime);
 	}
 	
-
 	/**
 	 * Returns the total number of connections handed out by the Connection Pool.
 	 * @return the number of connection reservations
@@ -215,18 +214,18 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	
 	/**
 	 * Returns the maximum wait time for a connection.
-	 * @return the maximum time in milliseconds
+	 * @return the maximum wait time
 	 */
-	public long getMaxWaitTime() {
-		return _maxWaitTime;
+	public Duration getMaxWaitTime() {
+		return Duration.ofNanos(_maxWaitTime);
 	}
 	
 	/**
 	 * Returns the maximum borrow time for a connection.
-	 * @return the maximum time a connection was borrowed in milliseconds
+	 * @return the maximum time a connection was borrowed
 	 */
-	public long getMaxBorrowTime() {
-		return _maxBorrowTime;
+	public Duration getMaxBorrowTime() {
+		return Duration.ofNanos(_maxBorrowTime);
 	}
 	
 	/**
@@ -295,11 +294,13 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			long wt = System.nanoTime();
 			cpe = _idleCons.poll(_borrowWaitTime, TimeUnit.MILLISECONDS);
 			if (cpe != null) {
+				wt = System.nanoTime() - wt;
 				if (cpe.isActive() && !cpe.inUse()) {
-					long us = TimeUnit.MICROSECONDS.convert(System.nanoTime() - wt, TimeUnit.NANOSECONDS);
+					long us = TimeUnit.MICROSECONDS.convert(wt, TimeUnit.NANOSECONDS);
 					T c = cpe.reserve(_logStack);
 					log.log((us > 2500) ? Level.INFO : Level.DEBUG, "{} reserve {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), MSFMT.format(us / 1000.0));
 					_totalRequests.increment();
+					_totalWaitTime.add(wt);
 					return c;
 				}
 				
@@ -354,12 +355,14 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		long waitTime = System.nanoTime();
 		try {
 			cpe = _idleCons.poll(_fullWaitTime, TimeUnit.MILLISECONDS);
-			waitTime = TimeUnit.MICROSECONDS.convert(System.nanoTime() - waitTime, TimeUnit.NANOSECONDS);
+			waitTime = System.nanoTime() - waitTime;
 			if (cpe != null) {
-				log.info("{} reserve(w) {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), MSFMT.format(waitTime / 1000.0));
-				_maxWaitTime = Math.max(_maxWaitTime, waitTime * 1000);
-				_waitCount.increment();		
-				return cpe.reserve(_logStack);
+				T c = cpe.reserve(_logStack);
+				log.info("{} reserve(w) {} [{}] ({}ms)", _name, cpe, Long.valueOf(cpe.getUseCount()), MSFMT.format(waitTime / 1_000_000.0));
+				_maxWaitTime = Math.max(_maxWaitTime, TimeUnit.MICROSECONDS.convert(waitTime, TimeUnit.NANOSECONDS));
+				_waitCount.increment();
+				_totalWaitTime.add(waitTime);
+				return c;
 			}
 		} catch (InterruptedException ie) {
 			log.warn("Interrupted waiting for Connection");
@@ -387,7 +390,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	}
 	
 	@Override
-	public long release(T c) {
+	public Duration release(T c) {
 		return release(c, false);
 	}
 
@@ -398,14 +401,14 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	 * @param isForced TRUE if a forced close by the connection monitor, otherwise FALSE
 	 * @return the number of milliseconds the connection was used for
 	 */
-	long release(T c, boolean isForced) {
-		if (c == null) return 0;
+	Duration release(T c, boolean isForced) {
+		if (c == null) return Duration.ZERO;
 
 		// Check that we got a connection wrapper
 		if (!(c instanceof ConnectionWrapper cw)) {
 			log.warn("Invalid Connection returned - {}", c.getClass().getName());
 			_errorCount.increment();
-			return 0;
+			return Duration.ZERO;
 		}
 
 		// Find the connection pool entry and free it
@@ -420,7 +423,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		if (cpe == null) {
 			log.warn("Invalid Connection returned - {}", Integer.valueOf(cw.getID()));
 			_errorCount.increment();
-			return 0;
+			return Duration.ZERO;
 		}
 		
 		// Do any cleanup
@@ -434,15 +437,15 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 		}
 
 		// Get use time
-		long useTime = cpe.getUseTime();
-		_maxBorrowTime = Math.max(_maxBorrowTime, useTime);
+		long ut = cpe.getUseTime(); Duration useTime = Duration.ofNanos(ut);
+		_maxBorrowTime = Math.max(_maxBorrowTime, ut);
 		if (isForced)
 			log.error("{} forced connection close - Connection {}", _name, cpe);
 
 		// If this is a stale dynamic connection, such it down
-		boolean isStale = (useTime > getStaleTime());
+		boolean isStale = (useTime.toMillis() > getStaleTime());
 		if (cpe.isDynamic() && (isForced || isStale)) {
-			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic Connection {} after {} ms", cpe, Long.valueOf(useTime));
+			log.atError().withThrowable(cpe.getStackInfo()).log("Closed stale dynamic Connection {} after {} ms", cpe, Long.valueOf(useTime.toMillis()));
 			cpe.close();
 			_errorCount.increment();
 			return useTime;
@@ -465,7 +468,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			addIdle(cpe); // freed in here
 
 		// Return usage time
-		log.debug("{} released {} [{}] - [{}ms]", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(useTime));
+		log.debug("{} released {} [{}] - [{}ms]", _name, cpe, Long.valueOf(cpe.getUseCount()), Long.valueOf(useTime.toMillis()));
 		return useTime;
 	}
 
@@ -589,8 +592,8 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 						log.debug("Skipping inactive connection {}", cpe);
 				} else if (cpe.inUse() && isStale) {
 					@SuppressWarnings("unchecked")
-					long useTime = release((T) cpe.getWrapper(), true);
-					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale Connection {} after {}ms ({})", _name, cpe, Long.valueOf(useTime), cpe.getLastThreadName());
+					Duration d = release((T) cpe.getWrapper(), true);
+					log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale Connection {} after {}ms ({})", _name, cpe, Long.valueOf(d.toMillis()), cpe.getLastThreadName());
 				} else if (cpe.isDynamic() && !cpe.inUse()) {
 					if (isStale)
 						log.atError().withThrowable(cpe.getStackInfo()).log("{} releasing stale dynamic Connection {}", _name, cpe);
@@ -615,8 +618,6 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 						try {
 							cpe.connect();
 							_idleCons.add(cpe);
-						} catch (SQLException se) {
-							log.warn("Unknown SQL Error code - {}", se.getSQLState());
 						} catch (Exception e) {
 							log.atError().withThrowable(e).log("Error reconnecting {}", cpe);
 						}

@@ -17,6 +17,7 @@ public class TestConnectionPoolEntry extends TestCase {
         super.setUp();
         _props = new Properties();
         _props.load(new FileInputStream("data/jdbc.properties"));
+        DriverManager.setLoginTimeout(1);
         Class.forName(_props.getProperty("driver"));
         _cpe = new JDBCPoolEntry(1, null, _props);
         _cpe.connect();
@@ -52,7 +53,7 @@ public class TestConnectionPoolEntry extends TestCase {
         _cpe.free(); // Should not fail
         
         long useTime = _cpe.getUseTime();
-        assertEquals(useTime, _cpe.getTotalUseTime());
+        assertEquals(useTime, _cpe.getTotalUseTime().toNanos());
     }
     
     public void testSystemConnection() {

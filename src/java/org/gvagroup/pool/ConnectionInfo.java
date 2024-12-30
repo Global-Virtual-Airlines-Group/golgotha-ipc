@@ -1,18 +1,18 @@
 // Copyright 2005, 2007, 2008, 2009, 2010, 2016, 2017, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
-import java.time.Instant;
+import java.time.*;
 
 /**
  * A bean to store information about a JDBC connection pool entry.
  * @author Luke
- * @version 3.02
+ * @version 3.10
  * @since 1.0
  */
 
 public class ConnectionInfo implements java.io.Serializable, Comparable<ConnectionInfo> {
    
-	private static final long serialVersionUID = -2296573022993532611L;
+	private static final long serialVersionUID = 1042655755512239102L;
 	
 	private final int _id;
 	private final long _lastThreadID;
@@ -24,9 +24,9 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
 	private final int _checkCount;
 	private final long _useCount;
 	private final long _sessionUseCount;
-	private final long _totalUse;
-	private final long _currentUse;
-	private final long _maxUse;
+	private final Duration _totalUse;
+	private final Duration _currentUse;
+	private final Duration _maxUse;
 	private final Instant _lastUsed;
 	private final Instant _lastChecked;
 	private final Throwable _trace;
@@ -48,7 +48,7 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
       _connectCount = entry.getConnectCount();
       _sessionUseCount = entry.getSessionUseCount();
       _totalUse = entry.getTotalUseTime();
-      _currentUse = entry.getUseTime();
+      _currentUse = Duration.ofNanos(entry.getUseTime());
       _maxUse = entry.getMaxUseTime();
       _trace = entry.getStackInfo();
       _lastUsed = (entry.getLastUseTime() > 0) ? Instant.ofEpochMilli(entry.getLastUseTime()) : null;
@@ -146,25 +146,33 @@ public class ConnectionInfo implements java.io.Serializable, Comparable<Connecti
    
    /**
     * Returns the total usage time for the Connection.
-    * @return the total usage time in milliseconds
+    * @return the total usage time
     */
-   public long getTotalUse() {
+   public Duration getTotalUse() {
       return _totalUse;
    }
    
    /**
-    * Returns the usage time of the last, or current, reservation of this Connection.
-    * @return the usage time in milliseconds
+    * Returns the average usage time for the Connection.
+    * @return the average usage time
     */
-   public long getCurrentUse() {
+   public Duration getAvgUse() {
+	   return (_useCount == 0) ? Duration.ZERO : Duration.ofNanos(_totalUse.toNanos() / _useCount);
+   }
+   
+   /**
+    * Returns the usage time of the last, or current, reservation of this Connection.
+    * @return the usage time
+    */
+   public Duration getCurrentUse() {
       return _currentUse;
    }
    
    /**
     * Returns the maximum usage time of this Connection.
-    * @return the usage time in milliseconds
+    * @return the usage time
     */
-   public long getMaxUse() {
+   public Duration getMaxUse() {
 	   return _maxUse;
    }
    

@@ -1,19 +1,21 @@
 // Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
+import java.time.Duration;
+
 import org.apache.logging.log4j.*;
 
 /**
  * A class to store connection data in a connection pool and track usage.
  * @author Luke
- * @version 3.03
+ * @version 3.10
  * @param <T> the connection type
  * @since 1.0
  */
 
 public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements java.io.Serializable, Comparable<ConnectionPoolEntry<T>> {
 
-	private static final long serialVersionUID = 680599574118396796L;
+	private static final long serialVersionUID = 458103041409760160L;
 
 	/**
 	 * Logger.
@@ -161,8 +163,8 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 */
 	protected void markUsed() {
 		_inUse = true;
-		_startTime = System.currentTimeMillis();
-		_lastUsed = _startTime;
+		_startTime = System.nanoTime();
+		_lastUsed = System.currentTimeMillis();
 		_useCount++;
 		_sessionUseCount++;
 		Thread t = Thread.currentThread();
@@ -280,15 +282,15 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 * @return the time this Connection Entry was reserved, in milliseconds
 	 */
 	public long getUseTime() {
-		return inUse() ? (System.currentTimeMillis() - _startTime) : _useTime;
+		return inUse() ? (System.nanoTime() - _startTime) : _useTime;
 	}
 	
 	/**
 	 * Returns the maximum usage time of this connection entry.
 	 * @return the maximum time this Connection Entry was reserved, in milliseconds
 	 */
-	public long getMaxUseTime() {
-		return _maxUseTime;
+	public Duration getMaxUseTime() {
+		return Duration.ofNanos(_maxUseTime);
 	}
 	
 	/**
@@ -343,8 +345,8 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	 * Returns how long this connection was used since the Connection pool was started.
 	 * @return the total time this Connection Entry was reserved, in milliseconds
 	 */
-	public long getTotalUseTime() {
-		return _totalTime;
+	public Duration getTotalUseTime() {
+		return Duration.ofNanos(_totalTime);
 	}
 	
 	/**
