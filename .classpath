@@ -8,8 +8,8 @@
 	<classpathentry kind="lib" path="lib/mysql-connector-j-8.3.0.jar"/>
 	<classpathentry kind="lib" path="lib/junixsocket-common-2.10.1.jar"/>
 	<classpathentry kind="lib" path="lib/jedis-5.2.0.jar"/>
-	<classpathentry kind="lib" path="lib/log4j-api-2.24.1.jar"/>
-	<classpathentry kind="lib" path="lib/log4j-core-2.24.1.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-api-2.24.3.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-core-2.24.3.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
