@@ -573,11 +573,11 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			
 			// Loop through the entries
 			for (ConnectionPoolEntry<T> cpe : entries) {
-				boolean isStale = (cpe.getUseTime() > getStaleTime());
+				Duration useTime = Duration.ofNanos(cpe.getUseTime());
+				boolean isStale = (useTime.toMillis() > getStaleTime());
 				if (isStale && cpe.isActive()) {
-					long useTime = cpe.getUseTime();
 					long lastActiveInterval = _lastValidationTime - cpe.getWrapper().getLastUse();
-					if ((useTime - lastActiveInterval) > 15_000)
+					if ((useTime.toMillis() - lastActiveInterval) > 15_000)
 						log.warn("Connection reserved for {}ms, last activity {}ms ago", Long.valueOf(cpe.getUseTime()), Long.valueOf(lastActiveInterval));
 					
 					isStale = (lastActiveInterval > getStaleTime());
