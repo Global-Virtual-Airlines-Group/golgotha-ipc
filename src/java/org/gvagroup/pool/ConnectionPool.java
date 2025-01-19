@@ -304,7 +304,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 					return c;
 				}
 				
-				Instant lastUse = Instant.ofEpochMilli(cpe.getLastUseTime());
+				ZonedDateTime lastUse = ZonedDateTime.ofInstant(Instant.ofEpochMilli(cpe.getLastUseTime()), ZoneOffset.UTC);
 				DateTimeFormatter dtfmt = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
 				log.warn("{} retrieved idle/used inactive Connection {} - (idle={}, used={}) by {} on {}", _name, cpe, Boolean.valueOf(!cpe.isActive()), Boolean.valueOf(cpe.inUse()), cpe.getLastThreadName(), dtfmt.format(lastUse));
 				_errorCount.increment();
