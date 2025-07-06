@@ -36,7 +36,6 @@ public class IDEvent extends SystemEvent {
 		_data = data;
 	}
 
-
 	/**
 	 * Returns the ID associated with this event.
 	 * @return the ID
