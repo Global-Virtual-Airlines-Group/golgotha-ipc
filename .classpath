@@ -6,10 +6,10 @@
 	<classpathentry kind="lib" path="lib/catalina.jar"/>
 	<classpathentry kind="lib" path="lib/ant-1.10.14.jar"/>
 	<classpathentry kind="lib" path="lib/junixsocket-common-2.10.1.jar"/>
-	<classpathentry kind="lib" path="lib/jedis-6.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-j-9.4.0.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-api-2.25.2.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-core-2.25.2.jar"/>
+	<classpathentry kind="lib" path="lib/jedis-7.0.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
