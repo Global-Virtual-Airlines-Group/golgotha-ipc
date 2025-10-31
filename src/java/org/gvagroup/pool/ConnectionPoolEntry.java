@@ -1,4 +1,4 @@
-// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2005, 2006, 2007, 2008, 2009, 2010, 2013, 2014, 2015, 2017, 2020, 2023, 2024, 2025 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
 import java.time.Duration;
@@ -8,7 +8,7 @@ import org.apache.logging.log4j.*;
 /**
  * A class to store connection data in a connection pool and track usage.
  * @author Luke
- * @version 3.10
+ * @version 3.12
  * @param <T> the connection type
  * @since 1.0
  */
@@ -279,7 +279,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 
 	/**
 	 * Returns how long this connection was used the last time.
-	 * @return the time this Connection Entry was reserved, in milliseconds
+	 * @return the time this Connection Entry was reserved, in nanoseconds
 	 */
 	public long getUseTime() {
 		return inUse() ? (System.nanoTime() - _startTime) : _useTime;
@@ -287,7 +287,7 @@ public abstract class ConnectionPoolEntry<T extends AutoCloseable> implements ja
 	
 	/**
 	 * Returns the maximum usage time of this connection entry.
-	 * @return the maximum time this Connection Entry was reserved, in milliseconds
+	 * @return the maximum time this Connection Entry was reserved, in nanoseconds
 	 */
 	public Duration getMaxUseTime() {
 		return Duration.ofNanos(_maxUseTime);

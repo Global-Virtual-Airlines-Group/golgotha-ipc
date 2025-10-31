@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023, 2024 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023, 2024, 2025 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
 import java.io.*;
@@ -19,7 +19,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable Connection Pool.
  * @author Luke
- * @version 3.10
+ * @version 3.12
  * @param <T> the Connection type.
  * @since 1.0
  * @see ConnectionPoolEntry
@@ -577,8 +577,10 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 				boolean isStale = (useTime.toMillis() > getStaleTime());
 				if (isStale && cpe.isActive()) {
 					long lastActiveInterval = _lastValidationTime - cpe.getWrapper().getLastUse();
-					if ((useTime.toMillis() - lastActiveInterval) > 15_000)
-						log.warn("Connection reserved for {}ms, last activity {}ms ago", Long.valueOf(cpe.getUseTime()), Long.valueOf(lastActiveInterval));
+					if ((useTime.toMillis() - lastActiveInterval) > 15_000) {
+						long useMS = TimeUnit.MILLISECONDS.convert(useTime);
+						log.warn("Connection reserved for {}ms, last activity {}ms ago",  Long.valueOf(useMS), Long.valueOf(lastActiveInterval));
+					}
 					
 					isStale = (lastActiveInterval > getStaleTime());
 				}
