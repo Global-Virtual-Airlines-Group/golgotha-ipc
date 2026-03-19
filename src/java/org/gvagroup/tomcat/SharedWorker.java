@@ -59,10 +59,14 @@ public class SharedWorker implements Runnable {
 	}
 	
 	/**
-	 * Registers a shared task for periodic execution.
+	 * Registers a shared task for periodic execution. This will remove any existing tasks with the same hash code.
 	 * @param t a SharedTask
 	 */
 	public static void register(SharedTask t) {
+		boolean isExisting = _tasks.removeIf(qe -> qe.getTask().hashCode() == t.hashCode());
+		if (isExisting)
+			log.info("Removed existing Task for {}", t);
+		
 		_tasks.add(new QueueEntry(t));
 	}
 	
