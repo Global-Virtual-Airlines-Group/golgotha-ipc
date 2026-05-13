@@ -1,4 +1,4 @@
-// Copyright 2022, 2023 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2022, 2023, 2026 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.tomcat;
 
 import org.apache.logging.log4j.*;
@@ -6,7 +6,7 @@ import org.apache.logging.log4j.*;
 /**
  * A Tomcat context listener to manage the Shared Worker thread.
  * @author Luke
- * @version 2.63
+ * @version 3.15
  * @since 2.40
  */
 
@@ -21,10 +21,7 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 	void onStartup(boolean isAfter) {
 		if (isAfter) return;
 		log = LogManager.getLogger(SharedWorker.class);
-		
-		_wt = Thread.ofVirtual().name(THREAD_NAME).unstarted(new SharedWorker());
-		_wt.setUncaughtExceptionHandler(this);
-		_wt.setDaemon(true);
+		_wt = createThread();
 		_wt.start();
 	}
 
@@ -38,6 +35,13 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 			log.warn("Timed out waiting for SharedWorker termination");
 		}
 	}
+	
+	private Thread createThread() {
+		Thread t = Thread.ofVirtual().name(THREAD_NAME).unstarted(new SharedWorker());
+		t.setUncaughtExceptionHandler(this);
+		t.setDaemon(true);
+		return t;
+	}
 
 	@Override
 	public void uncaughtException(Thread t, Throwable e) {
@@ -46,10 +50,7 @@ public class SharedWorkerListener extends AbstractLifecycleListener implements T
 			return;
 		}
 		
-		_wt = Thread.ofVirtual().name(THREAD_NAME).unstarted(new SharedWorker());
-		_wt.setUncaughtExceptionHandler(this);
-		_wt.setDaemon(true);
-		_wt.start();
+		_wt = createThread();
 		log.atError().withThrowable(e).log("Restarted {}", t.getName());
 	}
 }
