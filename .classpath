@@ -10,7 +10,7 @@
 	<classpathentry kind="lib" path="lib/log4j-core-2.26.0.jar"/>
 	<classpathentry kind="lib" path="lib/junixsocket-common-2.11.0.jar"/>
 	<classpathentry kind="lib" path="lib/jedis-8.0.0.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-api-1.7.36.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-2.0.18.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
 		<attributes>
 			<attribute name="module" value="true"/>
