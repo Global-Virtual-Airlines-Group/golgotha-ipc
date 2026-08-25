@@ -1,4 +1,4 @@
-// Copyright 2024 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2024, 2026 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
 import redis.clients.jedis.*;
@@ -6,7 +6,7 @@ import redis.clients.jedis.*;
 /**
  * A connection wrapper class for Jedis connections.
  * @author Luke
- * @version 3.00
+ * @version 3.16
  * @since 3.00
  */
 
@@ -19,16 +19,22 @@ public class JedisWrapper extends Jedis implements ConnectionWrapper<Jedis> {
 	
 	/**
 	 * Creates the wrapper.
-	 * @param addr the address of the server
-	 * @param port the port to connect to
+	 * @param ep the Jedis server address
+	 * @param cfg a JedisClientConfig
 	 * @param cpe the connection pool entry
 	 */
-	JedisWrapper(String addr, int port, ConnectionPoolEntry<Jedis> cpe) {
-		super(addr, port);
+	JedisWrapper(HostAndPort ep, JedisClientConfig cfg, ConnectionPoolEntry<Jedis> cpe) {
+		super(ep, cfg);
 		_id = cpe.getID();
 		_entry = cpe;
 	}
 	
+	/**
+	 * Creates the wrapper with a custom SocketFactory (usually for domain socket connections).
+	 * @param sf a SocketFactory
+	 * @param cfg a JedisClientConfig
+	 * @param cpe the connection pool entry
+	 */
 	JedisWrapper(JedisSocketFactory sf, JedisClientConfig cfg, ConnectionPoolEntry<Jedis> cpe) {
 		super(sf, cfg);
 		_id = cpe.getID();

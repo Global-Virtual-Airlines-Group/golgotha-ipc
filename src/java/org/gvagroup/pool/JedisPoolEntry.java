@@ -1,4 +1,4 @@
-// Copyright 2024 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2024, 2026 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
 import java.util.Properties;
@@ -8,7 +8,7 @@ import redis.clients.jedis.*;
 /**
  * A class to store Jedis connections in a connection pool and track usage.
  * @author Luke
- * @version 3.02
+ * @version 3.16
  * @since 3.00
  */
 
@@ -18,12 +18,6 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	
 	private final Properties _props = new Properties();
 	
-	private static class DefaultJedisConfig implements JedisClientConfig {
-		private DefaultJedisConfig() {
-			super();
-		}
-	}
-
 	/**
 	 * Creates the pool entry.
 	 * @param id the Connection ID
@@ -48,10 +42,13 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 		if (host.startsWith("/")) {
 			log.info("Using Unix socket {}", host);
 			JedisSocketFactory sf = new JedisDomainSocketFactory(host);
-			setWrapper(new JedisWrapper(sf, new DefaultJedisConfig(), this));
+			JedisClientConfig cfg = DefaultJedisClientConfig.builder().protocol(RedisProtocol.RESP3).build();
+			setWrapper(new JedisWrapper(sf, cfg, this));
 		} else {
 			int port = Integer.parseInt(_props.getProperty("port", "6379"));
-			setWrapper(new JedisWrapper(host, port, this));
+			HostAndPort ep = new HostAndPort(host, port);
+			JedisClientConfig cfg = DefaultJedisClientConfig.builder().protocol(RedisProtocol.RESP3).build();
+			setWrapper(new JedisWrapper(ep, cfg, this));
 		}
 
 		Jedis j = get();
@@ -81,7 +78,7 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 		markUsed();
 		markChecked();
 		try {
-			Jedis j = get(); // Don't autoclose as the pool will do this
+			Jedis j = get(); // Don't auto-close as the pool will do this
 			String result = j.ping();
 			return "PONG".equals(result);
 		} catch (Exception e) {
@@ -94,7 +91,7 @@ public class JedisPoolEntry extends ConnectionPoolEntry<Jedis> {
 	
 	@Override
 	void cleanup() {
-		Jedis j = get(); // Don't autoclose as the pool will do this
+		Jedis j = get(); // Don't auto-close as the pool will do this
 		j.resetState();
 	}
 }
