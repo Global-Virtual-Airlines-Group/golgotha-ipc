@@ -1,4 +1,4 @@
-// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023, 2024, 2025 Global Virtual Airlines Group. All Rights Reserved.
+// Copyright 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016, 2017, 2020, 2021, 2022, 2023, 2024, 2025, 2026 Global Virtual Airlines Group. All Rights Reserved.
 package org.gvagroup.pool;
 
 import java.io.*;
@@ -10,7 +10,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.concurrent.locks.*;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.*;
 
@@ -19,7 +18,7 @@ import org.gvagroup.tomcat.SharedWorker;
 /**
  * A user-configurable Connection Pool.
  * @author Luke
- * @version 3.12
+ * @version 3.17
  * @param <T> the Connection type.
  * @since 1.0
  * @see ConnectionPoolEntry
@@ -549,7 +548,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 	public Collection<ConnectionInfo> getPoolInfo() {
 		try {
 			_r.lock();
-			return  _cons.values().stream().map(ConnectionInfo::new).collect(Collectors.toList());
+			return  _cons.values().stream().map(ConnectionInfo::new).toList();
 		} finally {
 			_r.unlock();
 		}
@@ -566,7 +565,7 @@ public abstract class ConnectionPool<T extends AutoCloseable> implements Seriali
 			
 			// Check entries and idle entries. Number of free should match idle
 			Collection<ConnectionPoolEntry<T>> entries = _cons.values();
-			Collection<ConnectionPoolEntry<T>> freeEntries = entries.stream().filter(cpe -> cpe.isActive() && !cpe.inUse()).collect(Collectors.toList());
+			Collection<ConnectionPoolEntry<T>> freeEntries = entries.stream().filter(cpe -> cpe.isActive() && !cpe.inUse()).toList();
 			long idleCount = _idleCons.stream().filter(ConnectionPoolEntry::isActive).count();
 			if ((freeEntries.size() != _idleCons.size()) || (idleCount != _idleCons.size()))
 				log.warn("{} Free = {} / {}, IdleCount = {}, Idle = {} / {}", _name, Long.valueOf(freeEntries.size()), freeEntries, Long.valueOf(idleCount), Integer.valueOf(_idleCons.size()), _idleCons);
