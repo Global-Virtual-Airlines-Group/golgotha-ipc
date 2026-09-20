@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Project identity -->
+    <groupId>org.gvagroup</groupId>
+    <artifactId>golgotha-ipc</artifactId>
+    <version>3.17</version>
+    <packaging>jar</packaging>
+
+    <name>Golgotha IPC</name>
+    <description>Golgotha IPC Ant Task and supporting library</description>
+    <url>https://www.gvagroup.org/</url>
+
+    <!-- Build properties -->
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>27</maven.compiler.release>
+        <maven.build.timestamp.format>yyyyMMdd HHmmss Z</maven.build.timestamp.format>
+        <project.build.outputTimestamp>${maven.build.timestamp}</project.build.outputTimestamp>
+    </properties>
+
+    <!-- Dependencies -->
+    <dependencies>
+
+        <!-- This project implements Ant Tasks, so Ant is a real compile-time/runtime dependency, not merely a build tool. -->
+        <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>1.10.14</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-catalina</artifactId>
+            <version>11.0.26</version>
+        </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>8.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.kohlschutter.junixsocket</groupId>
+            <artifactId>junixsocket-common</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.26.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.26.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>9.7.0</version>
+        </dependency>
+    </dependencies>
+
+    <!-- Build -->
+    <build>
+        <!-- Ant uses src/java rather than Maven's src/main/java -->
+        <sourceDirectory>${project.basedir}/src/java</sourceDirectory>
+
+        <!-- Preserve the existing jar/ output convention. -->
+        <directory>${project.build.directory}</directory>
+        <plugins>
+
+            <!-- ========================================================
+                 Compiler
+                 ======================================================== -->
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+
+                <configuration>
+                    <release>26</release>
+
+                    <debug>true</debug>
+                    <debuglevel>lines,vars,source</debuglevel>
+
+                    <compilerArgs>
+                        <arg>-Xlint:unchecked</arg>
+                        <arg>-Xlint:deprecation</arg>
+                        <arg>-Xlint:path</arg>
+                        <arg>-Xlint:finally</arg>
+                        <arg>-Xlint:-options</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!-- JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+
+                <configuration>
+                    <outputDirectory>${project.basedir}/jar</outputDirectory>
+                    <archive>
+                        <index>true</index>
+                        <compress>true</compress>
+
+                        <manifestEntries>
+                            <Built-By>${user.name}</Built-By>
+                        </manifestEntries>
+
+                        <manifestSections>
+                            <manifestSection>
+                                <name>common</name>
+                                <manifestEntries>
+                                    <Bundle-Name>IPC</Bundle-Name>
+                                    <Bundle-Version>${project.version}</Bundle-Version>
+
+                                    <Specification-Title>Golgotha IPC</Specification-Title>
+                                    <Specification-Version>${project.version}</Specification-Version>
+                                    <Specification-Vendor>Global Virtual Airlines Group</Specification-Vendor>
+
+                                    <Implementation-Title>Golgotha IPC</Implementation-Title>
+                                    <Implementation-Version>${project.version} ${maven.build.timestamp}</Implementation-Version>
+                                    <Implementation-Vendor>Global Virtual Airlines Group</Implementation-Vendor>
+                                </manifestEntries>
+                            </manifestSection>
+                        </manifestSections>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Generate ipc.build.properties
+
+                 The original Ant build creates this file only when compilation actually produces a new JAR. Maven does
+                 not have an equivalent "updatedProperty" concept in its normal lifecycle, so this is generated on every package/build.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+
+                <executions>
+                    <execution>
+                        <id>generate-build-properties</id>
+                        <phase>process-classes</phase>
+                        <configuration>
+                            <target>
+
+                                <mkdir dir="${project.build.outputDirectory}" />
+
+                                <propertyfile file="${project.build.outputDirectory}/ipc.build.properties" comment="Golgotha build properties">
+                                    <entry key="build.date" value="${maven.build.timestamp}" />
+                                    <entry key="build.jvm" value="${java.version}" />
+                                    <entry key="build.os" value="${os.name} ${os.version} ${os.arch}" />
+                                </propertyfile>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+</project>
